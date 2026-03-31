@@ -9,7 +9,8 @@ const API_URL = window.location.origin;
 // Данные пользователя
 let userData = {
     userId: tg.initDataUnsafe?.user?.id || 12345,
-    username: tg.initDataUnsafe?.user?.username || tg.initDataUnsafe?.user?.first_name || 'Guest',
+    username: 'Загрузка...',
+    firstName: tg.initDataUnsafe?.user?.first_name || 'Игрок',
     balance: 1000,
     level: 1,
     exp: 0,
@@ -105,6 +106,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function initApp() {
     showLoading();
     
+    // Сначала устанавливаем имя из Telegram
+    if (tg.initDataUnsafe?.user) {
+        userData.username = tg.initDataUnsafe.user.first_name || tg.initDataUnsafe.user.username || 'Игрок';
+        userData.firstName = tg.initDataUnsafe.user.first_name || 'Игрок';
+        userData.userId = tg.initDataUnsafe.user.id || 12345;
+    }
+    
+    // Обновляем UI с начальными данными
+    updateUI();
+    
     // Загружаем данные с сервера
     await loadGameData();
     
@@ -163,7 +174,13 @@ async function loadGameData() {
             
             // Обновляем данные
             if (data.game_data) {
-                userData = { ...userData, ...data.game_data };
+                userData.level = data.game_data.level || userData.level;
+                userData.exp = data.game_data.exp || userData.exp;
+                userData.expToNextLevel = data.game_data.exp_to_next_level || userData.expToNextLevel;
+                userData.totalClicks = data.game_data.total_clicks || userData.totalClicks;
+                userData.coinsPerClick = data.game_data.coins_per_click || userData.coinsPerClick;
+                userData.energy = data.game_data.energy || userData.energy;
+                userData.maxEnergy = data.game_data.max_energy || userData.maxEnergy;
             }
             if (data.balance !== undefined) {
                 userData.balance = data.balance;
@@ -171,11 +188,15 @@ async function loadGameData() {
             if (data.inventory) {
                 inventory = data.inventory;
             }
-            if (data.upgrades) {
+            if (data.upgrades && data.upgrades.length > 0) {
                 upgrades = data.upgrades;
             }
-            if (data.achievements) {
-                achievements = data.achievements;
+            if (data.achievements && data.achievements.length > 0) {
+                achievements = data.achievements.map(a => ({
+                    achievement_id: a.achievement_id,
+                    progress: a.progress,
+                    unlocked: a.unlocked
+                }));
             }
             
             // Получаем имя пользователя
@@ -187,15 +208,25 @@ async function loadGameData() {
             
             if (userInfoResponse.ok) {
                 const userInfo = await userInfoResponse.json();
-                if (userInfo.username || userInfo.first_name) {
-                    userData.username = userInfo.username || userInfo.first_name;
-                }
+                userData.username = userInfo.first_name || userInfo.username || userData.firstName;
+                userData.firstName = userInfo.first_name || userData.firstName;
+            } else {
+                // Если не удалось получить с сервера, используем данные из Telegram
+                userData.username = tg.initDataUnsafe?.user?.first_name || tg.initDataUnsafe?.user?.username || userData.firstName;
+                userData.firstName = tg.initDataUnsafe?.user?.first_name || userData.firstName;
             }
+            
+            console.log('Game data loaded successfully from server');
         }
     } catch (error) {
         console.error('Error loading game data:', error);
         // Загружаем из localStorage как fallback
         loadFromLocalStorage();
+        // Устанавливаем имя из Telegram если не загрузилось
+        if (userData.username === 'Загрузка...') {
+            userData.username = tg.initDataUnsafe?.user?.first_name || tg.initDataUnsafe?.user?.username || 'Игрок';
+            userData.firstName = tg.initDataUnsafe?.user?.first_name || 'Игрок';
+        }
     }
 }
 
@@ -204,7 +235,7 @@ async function saveGameData() {
     if (isLoading) return;
     
     try {
-        await fetch(`${API_URL}/api/save_game_data`, {
+        const response = await fetch(`${API_URL}/api/save_game_data`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -215,20 +246,25 @@ async function saveGameData() {
                     exp_to_next_level: userData.expToNextLevel,
                     total_clicks: userData.totalClicks,
                     coins_per_click: userData.coinsPerClick,
-                    energy: userData.energy,
+                    energy: Math.floor(userData.energy),
                     max_energy: userData.maxEnergy,
                     last_energy_update: new Date().toISOString()
                 },
                 balance: userData.balance,
-                upgrades: upgrades.map(u => ({ upgrade_id: u.id, level: u.level })),
-                achievements: achievements.map(a => ({ id: a.id, progress: a.progress, unlocked: a.unlocked }))
+                upgrades: upgrades.map(u => ({ upgrade_id: u.upgrade_id || u.id, level: u.level })),
+                achievements: achievements.map(a => ({ id: a.achievement_id || a.id, progress: a.progress, unlocked: a.unlocked }))
             })
         });
         
-        // Также сохраняем в localStorage
+        if (response.ok) {
+            console.log('Game data saved successfully');
+        }
+        
+        // Также сохраняем в localStorage как резервную копию
         saveToLocalStorage();
     } catch (error) {
         console.error('Error saving game data:', error);
+        // Сохраняем локально если сервер недоступен
         saveToLocalStorage();
     }
 }
@@ -300,7 +336,14 @@ function startEnergyRegen() {
             userData.energy = Math.min(userData.maxEnergy, userData.energy + 1);
             updateUI();
         }
-    }, 1000);
+    }, 1000); // Восстанавливаем 1 энергию в секунду
+    
+    // Автосохранение при изменении энергии каждые 30 секунд
+    setInterval(() => {
+        if (!isLoading) {
+            saveGameData();
+        }
+    }, 30000);
 }
 
 // Уровни и опыт
@@ -515,7 +558,13 @@ function loadUpgrades() {
 
 function buyUpgrade(upgradeId) {
     const upgrade = upgradesData.find(u => u.id === upgradeId);
-    const userUpgrade = upgrades.find(u => u.upgrade_id === upgradeId) || { upgrade_id: upgradeId, level: 0 };
+    let userUpgrade = upgrades.find(u => u.upgrade_id === upgradeId);
+    
+    if (!userUpgrade) {
+        userUpgrade = { upgrade_id: upgradeId, level: 0 };
+        upgrades.push(userUpgrade);
+    }
+    
     const cost = Math.floor(upgrade.baseCost * Math.pow(upgrade.costMultiplier, userUpgrade.level));
     
     if (userData.balance < cost) {
@@ -526,15 +575,12 @@ function buyUpgrade(upgradeId) {
     userData.balance -= cost;
     userUpgrade.level++;
     
-    if (!upgrades.find(u => u.upgrade_id === upgradeId)) {
-        upgrades.push(userUpgrade);
-    }
-    
     // Применяем эффект
     if (upgradeId === 'click_power') {
         userData.coinsPerClick += upgrade.effect;
     } else if (upgradeId === 'max_energy') {
         userData.maxEnergy += upgrade.effect;
+        userData.energy = Math.min(userData.energy, userData.maxEnergy);
     }
     
     updateAchievement('upgrader', upgrades.reduce((sum, u) => sum + u.level, 0));
@@ -672,24 +718,39 @@ function hideLoading() {
 
 // LocalStorage fallback
 function saveToLocalStorage() {
-    localStorage.setItem('userData', JSON.stringify(userData));
-    localStorage.setItem('upgrades', JSON.stringify(upgrades));
-    localStorage.setItem('achievements', JSON.stringify(achievements));
-    localStorage.setItem('history', JSON.stringify(openHistory));
+    try {
+        localStorage.setItem('userData', JSON.stringify(userData));
+        localStorage.setItem('upgrades', JSON.stringify(upgrades));
+        localStorage.setItem('achievements', JSON.stringify(achievements));
+        localStorage.setItem('history', JSON.stringify(openHistory));
+        localStorage.setItem('lastSave', new Date().toISOString());
+        console.log('Data saved to localStorage');
+    } catch (error) {
+        console.error('Error saving to localStorage:', error);
+    }
 }
 
 function loadFromLocalStorage() {
-    const saved = localStorage.getItem('userData');
-    if (saved) userData = { ...userData, ...JSON.parse(saved) };
-    
-    const savedUpgrades = localStorage.getItem('upgrades');
-    if (savedUpgrades) upgrades = JSON.parse(savedUpgrades);
-    
-    const savedAch = localStorage.getItem('achievements');
-    if (savedAch) achievements = JSON.parse(savedAch);
-    
-    const savedHistory = localStorage.getItem('history');
-    if (savedHistory) openHistory = JSON.parse(savedHistory);
+    try {
+        const saved = localStorage.getItem('userData');
+        if (saved) {
+            const savedData = JSON.parse(saved);
+            userData = { ...userData, ...savedData };
+        }
+        
+        const savedUpgrades = localStorage.getItem('upgrades');
+        if (savedUpgrades) upgrades = JSON.parse(savedUpgrades);
+        
+        const savedAch = localStorage.getItem('achievements');
+        if (savedAch) achievements = JSON.parse(savedAch);
+        
+        const savedHistory = localStorage.getItem('history');
+        if (savedHistory) openHistory = JSON.parse(savedHistory);
+        
+        console.log('Data loaded from localStorage');
+    } catch (error) {
+        console.error('Error loading from localStorage:', error);
+    }
 }
 
 // Стили для анимаций

@@ -22,6 +22,9 @@ body {
     overflow-x: hidden;
     user-select: none;
     -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    margin: 0;
+    padding: 0;
 }
 
 .container {
@@ -666,6 +669,18 @@ main {
     overflow-y: auto;
     box-shadow: 0 20px 60px rgba(0,0,0,0.5);
     border: 2px solid rgba(255,215,0,0.3);
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -60%);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
 }
 
 .modal-close {
@@ -827,9 +842,19 @@ main {
 
 /* Responsive для ПК */
 @media (min-width: 768px) {
+    body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+    }
+    
     .container {
         max-width: 480px;
+        min-height: auto;
         box-shadow: 0 0 50px rgba(0,0,0,0.5);
+        border-radius: 20px;
+        overflow: hidden;
     }
     
     .tap-circle {
@@ -843,6 +868,70 @@ main {
     
     .cases-grid {
         grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .achievements-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .bottom-nav {
+        position: relative;
+        border-radius: 0 0 20px 20px;
+    }
+    
+    /* Улучшенная прокрутка для ПК */
+    main {
+        max-height: calc(100vh - 300px);
+        overflow-y: auto;
+    }
+}
+
+/* Адаптация для маленьких экранов */
+@media (max-width: 360px) {
+    .tap-circle {
+        width: 220px;
+        height: 220px;
+    }
+    
+    .tap-emoji {
+        font-size: 160px;
+    }
+    
+    .stats-panel {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+    }
+    
+    .stat-item {
+        padding: 8px;
+    }
+    
+    .stat-icon {
+        font-size: 20px;
+    }
+    
+    .stat-value {
+        font-size: 12px;
+    }
+    
+    .cases-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    
+    .case-emoji {
+        font-size: 48px;
+    }
+}
+
+/* Улучшения для планшетов */
+@media (min-width: 600px) and (max-width: 767px) {
+    .container {
+        max-width: 600px;
+    }
+    
+    .cases-grid {
+        grid-template-columns: repeat(3, 1fr);
     }
     
     .achievements-grid {
