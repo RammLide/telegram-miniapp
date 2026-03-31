@@ -1,47 +1,67 @@
 // Инициализация Telegram Web App
 const tg = window.Telegram.WebApp;
 tg.expand();
+tg.enableClosingConfirmation();
+
+// API URL
+const API_URL = window.location.origin;
 
 // Данные пользователя
 let userData = {
-    userId: tg.initDataUnsafe?.user?.id || 0,
-    username: tg.initDataUnsafe?.user?.username || 'Guest',
+    userId: tg.initDataUnsafe?.user?.id || 12345,
+    username: tg.initDataUnsafe?.user?.username || tg.initDataUnsafe?.user?.first_name || 'Guest',
     balance: 1000,
     level: 1,
     exp: 0,
-    expToNextLevel: 100
+    expToNextLevel: 100,
+    energy: 1000,
+    maxEnergy: 1000,
+    coinsPerClick: 1,
+    totalClicks: 0
 };
 
-// История открытий
+// Игровые данные
+let inventory = [];
 let openHistory = [];
+let upgrades = [];
+let achievements = [];
+let isLoading = false;
 
-// Достижения
-const achievements = [
-    { id: 'first_case', name: 'Первый кейс', desc: 'Открой свой первый кейс', icon: '🎁', progress: 0, target: 1, unlocked: false },
-    { id: 'case_master', name: 'Мастер кейсов', desc: 'Открой 10 кейсов', icon: '🏆', progress: 0, target: 10, unlocked: false },
-    { id: 'lucky_one', name: 'Везунчик', desc: 'Получи легендарный предмет', icon: '⭐', progress: 0, target: 1, unlocked: false },
-    { id: 'collector', name: 'Коллекционер', desc: 'Собери 20 предметов', icon: '📦', progress: 0, target: 20, unlocked: false },
-    { id: 'rich', name: 'Богач', desc: 'Накопи 5000 монет', icon: '💰', progress: 0, target: 5000, unlocked: false },
-    { id: 'level_5', name: 'Опытный', desc: 'Достигни 5 уровня', icon: '🌟', progress: 0, target: 5, unlocked: false }
+// Улучшения
+const upgradesData = [
+    { id: 'click_power', name: 'Сила клика', desc: 'Увеличивает монеты за клик', icon: '💪', baseCost: 100, costMultiplier: 1.5, effect: 1 },
+    { id: 'max_energy', name: 'Больше энергии', desc: 'Увеличивает максимум энергии', icon: '⚡', baseCost: 200, costMultiplier: 1.6, effect: 100 },
+    { id: 'energy_regen', name: 'Регенерация', desc: 'Быстрее восстанавливает энергию', icon: '🔋', baseCost: 300, costMultiplier: 1.7, effect: 1 },
+    { id: 'auto_clicker', name: 'Авто-клик', desc: 'Монеты в секунду', icon: '🤖', baseCost: 500, costMultiplier: 2.0, effect: 1 }
 ];
 
-// Данные кейсов
+// Достижения
+const achievementsData = [
+    { id: 'first_click', name: 'Первый клик', desc: 'Сделай первый клик', icon: '👆', target: 1, progress: 0, unlocked: false },
+    { id: 'clicker_100', name: 'Кликер', desc: 'Сделай 100 кликов', icon: '🖱️', target: 100, progress: 0, unlocked: false },
+    { id: 'first_case', name: 'Первый кейс', desc: 'Открой первый кейс', icon: '🎁', target: 1, progress: 0, unlocked: false },
+    { id: 'rich', name: 'Богач', desc: 'Накопи 10000 монет', icon: '💰', target: 10000, progress: 0, unlocked: false },
+    { id: 'level_5', name: 'Опытный', desc: 'Достигни 5 уровня', icon: '⭐', target: 5, progress: 0, unlocked: false },
+    { id: 'upgrader', name: 'Улучшатель', desc: 'Купи 5 улучшений', icon: '⬆️', target: 5, progress: 0, unlocked: false }
+];
+
+// Кейсы
 const cases = [
     {
         id: 1,
-        name: 'Бронзовый кейс',
+        name: 'Бронзовый',
         price: 100,
-        emoji: '🎁',
+        emoji: '📦',
         items: [
             { name: 'Монета', rarity: 'common', value: 10, image: '🪙', exp: 5 },
             { name: 'Кристалл', rarity: 'rare', value: 50, image: '💎', exp: 15 },
             { name: 'Золото', rarity: 'epic', value: 150, image: '🏆', exp: 30 },
-            { name: 'Легендарный меч', rarity: 'legendary', value: 500, image: '⚔️', exp: 100 }
+            { name: 'Меч', rarity: 'legendary', value: 500, image: '⚔️', exp: 100 }
         ]
     },
     {
         id: 2,
-        name: 'Серебряный кейс',
+        name: 'Серебряный',
         price: 250,
         emoji: '🎁',
         items: [
@@ -53,120 +73,237 @@ const cases = [
     },
     {
         id: 3,
-        name: 'Золотой кейс',
+        name: 'Золотой',
         price: 500,
-        emoji: '🎁',
+        emoji: '💎',
         items: [
-            { name: 'Золотая монета', rarity: 'common', value: 100, image: '🟡', exp: 20 },
+            { name: 'Золото', rarity: 'common', value: 100, image: '🟡', exp: 20 },
             { name: 'Изумруд', rarity: 'rare', value: 300, image: '💚', exp: 40 },
-            { name: 'Магический посох', rarity: 'epic', value: 800, image: '🪄', exp: 80 },
+            { name: 'Посох', rarity: 'epic', value: 800, image: '🪄', exp: 80 },
             { name: 'Феникс', rarity: 'legendary', value: 2000, image: '🔥', exp: 200 }
         ]
     },
     {
         id: 4,
-        name: 'Платиновый кейс',
+        name: 'Платиновый',
         price: 1000,
-        emoji: '🎁',
+        emoji: '👑',
         items: [
             { name: 'Платина', rarity: 'rare', value: 500, image: '⚪', exp: 50 },
             { name: 'Алмаз', rarity: 'epic', value: 1200, image: '💎', exp: 100 },
-            { name: 'Легендарный щит', rarity: 'legendary', value: 3000, image: '🛡️', exp: 250 },
+            { name: 'Щит', rarity: 'legendary', value: 3000, image: '🛡️', exp: 250 },
             { name: 'Единорог', rarity: 'legendary', value: 5000, image: '🦄', exp: 500 }
         ]
     }
 ];
 
-// Инвентарь пользователя
-let inventory = [];
-
 // Инициализация
-document.addEventListener('DOMContentLoaded', () => {
-    initApp();
+document.addEventListener('DOMContentLoaded', async () => {
+    await initApp();
 });
 
-function initApp() {
-    loadProgress();
-    loadHistoryData();
-    loadAchievementsData();
+async function initApp() {
+    showLoading();
     
-    document.getElementById('username').textContent = userData.username;
-    updateBalance();
-    updateLevel();
+    // Загружаем данные с сервера
+    await loadGameData();
     
+    // Инициализация UI
+    updateUI();
     loadCases();
-    loadInventory();
-    loadHistory();
+    loadUpgrades();
     loadAchievements();
-    checkDailyBonus();
+    checkDailyReward();
     
-    // Обработчики навигации
-    document.querySelectorAll('.nav-tab').forEach(tab => {
-        tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+    // Обработчики событий
+    setupEventListeners();
+    
+    // Запускаем регенерацию энергии
+    startEnergyRegen();
+    
+    // Автосохранение каждые 10 секунд
+    setInterval(() => saveGameData(), 10000);
+    
+    hideLoading();
+}
+
+function setupEventListeners() {
+    // Навигация
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.addEventListener('click', () => switchTab(btn.dataset.tab));
     });
     
-    // Обработчики модального окна
-    document.getElementById('closeModal').addEventListener('click', closeModal);
+    // Тап
+    const tapCircle = document.getElementById('tapCircle');
+    tapCircle.addEventListener('click', handleTap);
+    
+    // Ежедневная награда
+    document.getElementById('claimDaily').addEventListener('click', claimDailyReward);
+    
+    // Модальное окно
+    document.getElementById('modalClose').addEventListener('click', closeModal);
+    document.getElementById('modalOverlay').addEventListener('click', closeModal);
     document.getElementById('openCaseBtn').addEventListener('click', openCase);
-    document.getElementById('claimBonus').addEventListener('click', claimDailyBonus);
     
-    window.addEventListener('click', (e) => {
-        const modal = document.getElementById('openModal');
-        if (e.target === modal) closeModal();
-    });
+    // Приглашение друзей
+    document.getElementById('inviteBtn').addEventListener('click', inviteFriend);
+}
+
+// Загрузка данных с сервера
+async function loadGameData() {
+    try {
+        const response = await fetch(`${API_URL}/api/game_data`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userData.userId })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            
+            // Обновляем данные
+            if (data.game_data) {
+                userData = { ...userData, ...data.game_data };
+            }
+            if (data.balance !== undefined) {
+                userData.balance = data.balance;
+            }
+            if (data.inventory) {
+                inventory = data.inventory;
+            }
+            if (data.upgrades) {
+                upgrades = data.upgrades;
+            }
+            if (data.achievements) {
+                achievements = data.achievements;
+            }
+            
+            // Получаем имя пользователя
+            const userInfoResponse = await fetch(`${API_URL}/api/user_info`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userData.userId })
+            });
+            
+            if (userInfoResponse.ok) {
+                const userInfo = await userInfoResponse.json();
+                if (userInfo.username || userInfo.first_name) {
+                    userData.username = userInfo.username || userInfo.first_name;
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error loading game data:', error);
+        // Загружаем из localStorage как fallback
+        loadFromLocalStorage();
+    }
+}
+
+// Сохранение данных на сервер
+async function saveGameData() {
+    if (isLoading) return;
+    
+    try {
+        await fetch(`${API_URL}/api/save_game_data`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                user_id: userData.userId,
+                game_data: {
+                    level: userData.level,
+                    exp: userData.exp,
+                    exp_to_next_level: userData.expToNextLevel,
+                    total_clicks: userData.totalClicks,
+                    coins_per_click: userData.coinsPerClick,
+                    energy: userData.energy,
+                    max_energy: userData.maxEnergy,
+                    last_energy_update: new Date().toISOString()
+                },
+                balance: userData.balance,
+                upgrades: upgrades.map(u => ({ upgrade_id: u.id, level: u.level })),
+                achievements: achievements.map(a => ({ id: a.id, progress: a.progress, unlocked: a.unlocked }))
+            })
+        });
+        
+        // Также сохраняем в localStorage
+        saveToLocalStorage();
+    } catch (error) {
+        console.error('Error saving game data:', error);
+        saveToLocalStorage();
+    }
 }
 
 // Навигация
 function switchTab(tabName) {
-    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
     
     document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
     document.getElementById(`${tabName}-tab`).classList.add('active');
     
-    if (tabName === 'inventory') loadInventoryDisplay();
-    if (tabName === 'history') loadHistory();
-    if (tabName === 'achievements') loadAchievements();
-}
-
-// Ежедневный бонус
-function checkDailyBonus() {
-    const lastClaim = localStorage.getItem('lastDailyBonus');
-    const today = new Date().toDateString();
-    
-    if (lastClaim !== today) {
-        document.getElementById('dailyBonus').classList.remove('claimed');
-        document.getElementById('claimBonus').disabled = false;
-    } else {
-        document.getElementById('dailyBonus').classList.add('claimed');
-        document.getElementById('claimBonus').disabled = true;
-        document.querySelector('.bonus-text p').textContent = 'Возвращайся завтра!';
+    if (tabName === 'earn') {
+        loadHistory();
+        loadAchievements();
     }
 }
 
-function claimDailyBonus() {
-    const bonus = 500;
-    userData.balance += bonus;
-    updateBalance();
+// Обработка тапа
+function handleTap(e) {
+    if (userData.energy < 1) {
+        showNotification('Недостаточно энергии!');
+        return;
+    }
     
-    localStorage.setItem('lastDailyBonus', new Date().toDateString());
-    document.getElementById('dailyBonus').classList.add('claimed');
-    document.getElementById('claimBonus').disabled = true;
-    document.querySelector('.bonus-text p').textContent = 'Возвращайся завтра!';
+    // Уменьшаем энергию
+    userData.energy = Math.max(0, userData.energy - 1);
     
-    tg.HapticFeedback.notificationOccurred('success');
-    showNotification(`+${bonus} 💰 получено!`);
+    // Добавляем монеты
+    userData.balance += userData.coinsPerClick;
+    userData.totalClicks++;
+    
+    // Добавляем опыт
+    addExp(1);
+    
+    // Обновляем достижения
+    updateAchievement('first_click', 1);
+    updateAchievement('clicker_100', 1);
+    updateAchievement('rich', userData.balance);
+    
+    // Показываем анимацию
+    showTapAnimation(e, userData.coinsPerClick);
+    
+    // Обновляем UI
+    updateUI();
+    
+    // Вибрация
+    tg.HapticFeedback.impactOccurred('light');
+}
+
+function showTapAnimation(e, amount) {
+    const counter = document.getElementById('tapCounter');
+    const rect = e.target.getBoundingClientRect();
+    
+    counter.textContent = `+${amount}`;
+    counter.style.left = `${e.clientX - rect.left}px`;
+    counter.style.top = `${e.clientY - rect.top}px`;
+    counter.classList.remove('show');
+    
+    setTimeout(() => {
+        counter.classList.add('show');
+    }, 10);
+}
+
+// Регенерация энергии
+function startEnergyRegen() {
+    setInterval(() => {
+        if (userData.energy < userData.maxEnergy) {
+            userData.energy = Math.min(userData.maxEnergy, userData.energy + 1);
+            updateUI();
+        }
+    }, 1000);
 }
 
 // Уровни и опыт
-function updateLevel() {
-    document.getElementById('level').textContent = userData.level;
-    document.getElementById('expText').textContent = `${userData.exp} / ${userData.expToNextLevel} XP`;
-    
-    const progress = (userData.exp / userData.expToNextLevel) * 100;
-    document.getElementById('expProgress').style.width = `${progress}%`;
-}
-
 function addExp(amount) {
     userData.exp += amount;
     
@@ -175,32 +312,81 @@ function addExp(amount) {
         userData.level++;
         userData.expToNextLevel = Math.floor(userData.expToNextLevel * 1.5);
         
-        showNotification(`🎉 Уровень повышен! Теперь ${userData.level} уровень!`);
+        showNotification(`🎉 Уровень ${userData.level}!`);
         tg.HapticFeedback.notificationOccurred('success');
         
-        // Проверка достижения
         updateAchievement('level_5', userData.level);
     }
     
-    updateLevel();
-    saveProgress();
+    updateUI();
 }
 
-// Загрузка кейсов
+// Обновление UI
+function updateUI() {
+    document.getElementById('username').textContent = userData.username;
+    document.getElementById('level').textContent = userData.level;
+    document.getElementById('balance').textContent = userData.balance.toLocaleString();
+    document.getElementById('energy').textContent = Math.floor(userData.energy);
+    document.getElementById('maxEnergy').textContent = userData.maxEnergy;
+    document.getElementById('coinsPerClick').textContent = userData.coinsPerClick;
+    
+    const expProgress = (userData.exp / userData.expToNextLevel) * 100;
+    document.getElementById('expFill').style.width = `${expProgress}%`;
+    document.getElementById('expText').textContent = `${userData.exp} / ${userData.expToNextLevel} XP`;
+}
+
+// Ежедневная награда
+function checkDailyReward() {
+    const lastClaim = localStorage.getItem('lastDailyReward');
+    const today = new Date().toDateString();
+    
+    const dailyReward = document.getElementById('dailyReward');
+    const claimBtn = document.getElementById('claimDaily');
+    
+    if (lastClaim !== today) {
+        dailyReward.classList.remove('claimed');
+        claimBtn.disabled = false;
+    } else {
+        dailyReward.classList.add('claimed');
+        claimBtn.disabled = true;
+        claimBtn.textContent = 'Завтра';
+    }
+}
+
+function claimDailyReward() {
+    const bonus = 500;
+    userData.balance += bonus;
+    updateUI();
+    
+    localStorage.setItem('lastDailyReward', new Date().toDateString());
+    
+    const dailyReward = document.getElementById('dailyReward');
+    const claimBtn = document.getElementById('claimDaily');
+    dailyReward.classList.add('claimed');
+    claimBtn.disabled = true;
+    claimBtn.textContent = 'Завтра';
+    
+    showNotification(`+${bonus} 💰 получено!`);
+    tg.HapticFeedback.notificationOccurred('success');
+    
+    saveGameData();
+}
+
+// Кейсы
 function loadCases() {
     const casesGrid = document.getElementById('casesGrid');
     casesGrid.innerHTML = '';
     
     cases.forEach(caseItem => {
-        const caseCard = document.createElement('div');
-        caseCard.className = 'case-card';
-        caseCard.innerHTML = `
+        const card = document.createElement('div');
+        card.className = 'case-card';
+        card.innerHTML = `
             <div class="case-emoji">${caseItem.emoji}</div>
-            <h3>${caseItem.name}</h3>
-            <p class="case-price">💰 ${caseItem.price}</p>
+            <div class="case-name">${caseItem.name}</div>
+            <div class="case-price">💰 ${caseItem.price}</div>
         `;
-        caseCard.addEventListener('click', () => showCaseModal(caseItem));
-        casesGrid.appendChild(caseCard);
+        card.addEventListener('click', () => showCaseModal(caseItem));
+        casesGrid.appendChild(card);
     });
 }
 
@@ -208,201 +394,168 @@ let currentCase = null;
 
 function showCaseModal(caseItem) {
     currentCase = caseItem;
-    const modal = document.getElementById('openModal');
-    const caseTitle = document.getElementById('caseTitle');
-    const result = document.getElementById('result');
-    const openBtn = document.getElementById('openCaseBtn');
-    const caseBox = document.querySelector('.case-box');
     
-    caseTitle.textContent = caseItem.name;
-    result.style.display = 'none';
+    document.getElementById('caseTitle').textContent = caseItem.name + ' кейс';
+    document.getElementById('casePrice').textContent = `💰 ${caseItem.price}`;
+    document.getElementById('caseResult').style.display = 'none';
+    document.getElementById('casePreview').style.display = 'flex';
+    
+    const caseBox = document.querySelector('.case-box-3d');
     caseBox.classList.remove('opening');
+    
+    const openBtn = document.getElementById('openCaseBtn');
     openBtn.disabled = false;
+    openBtn.querySelector('.btn-text').textContent = 'Открыть кейс';
     
-    const btnText = openBtn.querySelector('.btn-text');
-    const btnPrice = openBtn.querySelector('.btn-price');
-    btnText.textContent = 'Открыть кейс';
-    btnPrice.textContent = `💰 ${caseItem.price}`;
-    
-    modal.style.display = 'block';
+    document.getElementById('caseModal').classList.add('active');
 }
 
 function closeModal() {
-    const modal = document.getElementById('openModal');
-    modal.style.display = 'none';
+    document.getElementById('caseModal').classList.remove('active');
     currentCase = null;
 }
 
 function openCase() {
-    if (!currentCase) return;
-    
-    if (userData.balance < currentCase.price) {
-        tg.showAlert('Недостаточно средств!');
+    if (!currentCase || userData.balance < currentCase.price) {
+        showNotification('Недостаточно средств!');
         return;
     }
     
     userData.balance -= currentCase.price;
-    updateBalance();
+    updateUI();
     
     const openBtn = document.getElementById('openCaseBtn');
-    const caseBox = document.querySelector('.case-box');
-    const result = document.getElementById('result');
-    
     openBtn.disabled = true;
     openBtn.querySelector('.btn-text').textContent = 'Открываем...';
     
+    const caseBox = document.querySelector('.case-box-3d');
     caseBox.classList.add('opening');
+    
     tg.HapticFeedback.impactOccurred('medium');
     
     setTimeout(() => {
         const item = getRandomItem(currentCase.items);
-        addToInventory(item);
-        addToHistory(currentCase.name, item);
-        showResult(item);
+        showCaseResult(item);
         
-        // Обновление достижений
+        userData.balance += item.value;
+        addExp(item.exp);
+        
+        addToHistory(currentCase.name, item);
         updateAchievement('first_case', 1);
-        updateAchievement('case_master', 1);
-        if (item.rarity === 'legendary') updateAchievement('lucky_one', 1);
-        updateAchievement('collector', inventory.length);
         updateAchievement('rich', userData.balance);
         
-        openBtn.querySelector('.btn-text').textContent = 'Открыть еще раз';
+        updateUI();
+        saveGameData();
+        
         openBtn.disabled = false;
+        openBtn.querySelector('.btn-text').textContent = 'Открыть еще';
     }, 1500);
 }
 
 function getRandomItem(items) {
-    const rarityChances = {
-        common: 50,
-        rare: 30,
-        epic: 15,
-        legendary: 5
-    };
+    const chances = { common: 50, rare: 30, epic: 15, legendary: 5 };
+    const rand = Math.random() * 100;
+    let cumulative = 0;
+    let rarity = 'common';
     
-    const random = Math.random() * 100;
-    let cumulativeChance = 0;
-    let selectedRarity = 'common';
-    
-    for (const [rarity, chance] of Object.entries(rarityChances)) {
-        cumulativeChance += chance;
-        if (random <= cumulativeChance) {
-            selectedRarity = rarity;
+    for (const [r, chance] of Object.entries(chances)) {
+        cumulative += chance;
+        if (rand <= cumulative) {
+            rarity = r;
             break;
         }
     }
     
-    const filteredItems = items.filter(item => item.rarity === selectedRarity);
-    return filteredItems.length > 0 
-        ? filteredItems[Math.floor(Math.random() * filteredItems.length)]
-        : items[0];
+    const filtered = items.filter(i => i.rarity === rarity);
+    return filtered[Math.floor(Math.random() * filtered.length)] || items[0];
 }
 
-function showResult(item) {
-    const result = document.getElementById('result');
-    const itemRarity = document.getElementById('itemRarity');
-    const itemImage = document.getElementById('itemImage');
-    const itemName = document.getElementById('itemName');
-    const itemValue = document.getElementById('itemValue');
-    const itemExp = document.getElementById('itemExp');
+function showCaseResult(item) {
+    document.getElementById('casePreview').style.display = 'none';
     
-    itemRarity.className = `item-rarity ${item.rarity}`;
-    itemImage.textContent = item.image;
-    itemName.textContent = item.name;
-    itemValue.textContent = item.value;
-    itemExp.textContent = item.exp;
+    const result = document.getElementById('caseResult');
+    document.getElementById('resultRarity').className = `result-rarity ${item.rarity}`;
+    document.getElementById('resultEmoji').textContent = item.image;
+    document.getElementById('resultName').textContent = item.name;
+    document.getElementById('resultValue').textContent = item.value;
+    document.getElementById('resultExp').textContent = item.exp;
     
     result.style.display = 'block';
     
-    userData.balance += item.value;
-    updateBalance();
-    
-    addExp(item.exp);
-    
     tg.HapticFeedback.notificationOccurred(item.rarity === 'legendary' ? 'success' : 'warning');
-    
-    if (item.rarity === 'legendary') {
-        createConfetti();
-    }
 }
 
-function createConfetti() {
-    const confetti = document.querySelector('.confetti');
-    for (let i = 0; i < 50; i++) {
-        const particle = document.createElement('div');
-        particle.style.cssText = `
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            background: ${['#ffd700', '#ff6b6b', '#4ade80', '#60a5fa'][Math.floor(Math.random() * 4)]};
-            left: ${Math.random() * 100}%;
-            top: ${Math.random() * 100}%;
-            animation: confettiFall ${1 + Math.random() * 2}s ease-out forwards;
-            border-radius: 50%;
+// Улучшения
+function loadUpgrades() {
+    const upgradesList = document.getElementById('upgradesList');
+    upgradesList.innerHTML = '';
+    
+    upgradesData.forEach(upgrade => {
+        const userUpgrade = upgrades.find(u => u.upgrade_id === upgrade.id) || { upgrade_id: upgrade.id, level: 0 };
+        const cost = Math.floor(upgrade.baseCost * Math.pow(upgrade.costMultiplier, userUpgrade.level));
+        
+        const card = document.createElement('div');
+        card.className = 'upgrade-card';
+        card.innerHTML = `
+            <div class="upgrade-icon">${upgrade.icon}</div>
+            <div class="upgrade-info">
+                <div class="upgrade-name">${upgrade.name}</div>
+                <div class="upgrade-desc">${upgrade.desc}</div>
+                <div class="upgrade-level">Уровень ${userUpgrade.level}</div>
+            </div>
+            <button class="upgrade-btn" data-id="${upgrade.id}" ${userData.balance < cost ? 'disabled' : ''}>
+                💰 ${cost}
+            </button>
         `;
-        confetti.appendChild(particle);
-        setTimeout(() => particle.remove(), 3000);
-    }
+        
+        card.querySelector('.upgrade-btn').addEventListener('click', () => buyUpgrade(upgrade.id));
+        upgradesList.appendChild(card);
+    });
 }
 
-// Инвентарь
-function addToInventory(item) {
-    const existingItem = inventory.find(i => i.name === item.name);
+function buyUpgrade(upgradeId) {
+    const upgrade = upgradesData.find(u => u.id === upgradeId);
+    const userUpgrade = upgrades.find(u => u.upgrade_id === upgradeId) || { upgrade_id: upgradeId, level: 0 };
+    const cost = Math.floor(upgrade.baseCost * Math.pow(upgrade.costMultiplier, userUpgrade.level));
     
-    if (existingItem) {
-        existingItem.count++;
-    } else {
-        inventory.push({ ...item, count: 1 });
-    }
-    
-    saveInventory();
-}
-
-function loadInventoryDisplay() {
-    const inventoryGrid = document.getElementById('inventoryGrid');
-    inventoryGrid.innerHTML = '';
-    
-    if (inventory.length === 0) {
-        inventoryGrid.innerHTML = '<div class="empty-inventory">Ваш инвентарь пуст<br>Открой кейс, чтобы получить предметы!</div>';
-        document.getElementById('itemCount').textContent = '0';
-        document.getElementById('totalValue').textContent = '0';
+    if (userData.balance < cost) {
+        showNotification('Недостаточно средств!');
         return;
     }
     
-    let totalValue = 0;
-    let totalItems = 0;
+    userData.balance -= cost;
+    userUpgrade.level++;
     
-    inventory.forEach(item => {
-        totalValue += item.value * item.count;
-        totalItems += item.count;
-        
-        const itemCard = document.createElement('div');
-        itemCard.className = 'inventory-item';
-        itemCard.innerHTML = `
-            <div class="item-emoji">${item.image}</div>
-            <h4>${item.name}</h4>
-            <p class="item-count">x${item.count}</p>
-            <p style="color: #ffd700; font-size: 0.9em;">💎 ${item.value}</p>
-        `;
-        inventoryGrid.appendChild(itemCard);
-    });
+    if (!upgrades.find(u => u.upgrade_id === upgradeId)) {
+        upgrades.push(userUpgrade);
+    }
     
-    document.getElementById('itemCount').textContent = totalItems;
-    document.getElementById('totalValue').textContent = totalValue;
+    // Применяем эффект
+    if (upgradeId === 'click_power') {
+        userData.coinsPerClick += upgrade.effect;
+    } else if (upgradeId === 'max_energy') {
+        userData.maxEnergy += upgrade.effect;
+    }
+    
+    updateAchievement('upgrader', upgrades.reduce((sum, u) => sum + u.level, 0));
+    
+    updateUI();
+    loadUpgrades();
+    saveGameData();
+    
+    showNotification(`${upgrade.name} улучшен!`);
+    tg.HapticFeedback.notificationOccurred('success');
 }
 
 // История
 function addToHistory(caseName, item) {
-    const historyItem = {
+    openHistory.unshift({
         caseName,
         item,
         timestamp: Date.now()
-    };
+    });
     
-    openHistory.unshift(historyItem);
-    if (openHistory.length > 50) openHistory.pop();
-    
-    saveHistory();
+    if (openHistory.length > 20) openHistory.pop();
 }
 
 function loadHistory() {
@@ -410,31 +563,27 @@ function loadHistory() {
     historyList.innerHTML = '';
     
     if (openHistory.length === 0) {
-        historyList.innerHTML = '<div class="empty-inventory">История пуста</div>';
+        historyList.innerHTML = '<p style="text-align:center;opacity:0.5;">История пуста</p>';
         return;
     }
     
-    openHistory.slice(0, 20).forEach(entry => {
-        const historyItem = document.createElement('div');
-        historyItem.className = `history-item ${entry.item.rarity}`;
-        
-        const timeAgo = getTimeAgo(entry.timestamp);
-        
-        historyItem.innerHTML = `
+    openHistory.slice(0, 10).forEach(entry => {
+        const item = document.createElement('div');
+        item.className = `history-item ${entry.item.rarity}`;
+        item.innerHTML = `
             <div class="history-icon">${entry.item.image}</div>
             <div class="history-info">
-                <h4>${entry.item.name}</h4>
-                <p class="history-time">${entry.caseName} • ${timeAgo}</p>
+                <div class="history-name">${entry.item.name}</div>
+                <div class="history-time">${entry.caseName} • ${getTimeAgo(entry.timestamp)}</div>
             </div>
             <div class="history-value">💎 ${entry.item.value}</div>
         `;
-        historyList.appendChild(historyItem);
+        historyList.appendChild(item);
     });
 }
 
 function getTimeAgo(timestamp) {
     const seconds = Math.floor((Date.now() - timestamp) / 1000);
-    
     if (seconds < 60) return 'только что';
     if (seconds < 3600) return `${Math.floor(seconds / 60)} мин назад`;
     if (seconds < 86400) return `${Math.floor(seconds / 3600)} ч назад`;
@@ -446,40 +595,45 @@ function loadAchievements() {
     const achievementsGrid = document.getElementById('achievementsGrid');
     achievementsGrid.innerHTML = '';
     
-    achievements.forEach(achievement => {
+    achievementsData.forEach(achievement => {
+        const userAch = achievements.find(a => a.achievement_id === achievement.id) || { achievement_id: achievement.id, progress: 0, unlocked: false };
+        
         const card = document.createElement('div');
-        card.className = `achievement-card ${achievement.unlocked ? 'unlocked' : 'locked'}`;
-        
-        const progress = Math.min((achievement.progress / achievement.target) * 100, 100);
-        
+        card.className = `achievement-card ${userAch.unlocked ? 'unlocked' : 'locked'}`;
         card.innerHTML = `
             <div class="achievement-icon">${achievement.icon}</div>
-            <h3>${achievement.name}</h3>
-            <p>${achievement.desc}</p>
-            <div class="achievement-progress">
-                <div class="achievement-progress-fill" style="width: ${progress}%"></div>
-            </div>
-            <p style="text-align: center; margin-top: 5px; font-size: 0.9em;">
-                ${achievement.progress} / ${achievement.target}
-            </p>
+            <div class="achievement-name">${achievement.name}</div>
+            <div class="achievement-desc">${achievement.desc}</div>
         `;
         achievementsGrid.appendChild(card);
     });
 }
 
 function updateAchievement(id, value) {
-    const achievement = achievements.find(a => a.id === id);
-    if (!achievement || achievement.unlocked) return;
+    const achievement = achievementsData.find(a => a.id === id);
+    if (!achievement) return;
     
-    achievement.progress = Math.min(achievement.progress + value, achievement.target);
-    
-    if (achievement.progress >= achievement.target && !achievement.unlocked) {
-        achievement.unlocked = true;
-        showNotification(`🏆 Достижение разблокировано: ${achievement.name}!`);
-        tg.HapticFeedback.notificationOccurred('success');
+    let userAch = achievements.find(a => a.achievement_id === id);
+    if (!userAch) {
+        userAch = { achievement_id: id, progress: 0, unlocked: false };
+        achievements.push(userAch);
     }
     
-    saveAchievements();
+    if (userAch.unlocked) return;
+    
+    userAch.progress = Math.min(value, achievement.target);
+    
+    if (userAch.progress >= achievement.target) {
+        userAch.unlocked = true;
+        showNotification(`🏆 ${achievement.name}!`);
+        tg.HapticFeedback.notificationOccurred('success');
+    }
+}
+
+// Приглашение друзей
+function inviteFriend() {
+    const inviteLink = `https://t.me/share/url?url=https://t.me/${tg.initDataUnsafe?.bot?.username || 'yourbot'}?start=${userData.userId}`;
+    tg.openTelegramLink(inviteLink);
 }
 
 // Уведомления
@@ -491,79 +645,54 @@ function showNotification(text) {
         left: 50%;
         transform: translateX(-50%);
         background: rgba(0,0,0,0.9);
-        color: #fff;
-        padding: 15px 30px;
+        color: white;
+        padding: 12px 24px;
         border-radius: 10px;
         font-weight: bold;
         z-index: 10000;
-        animation: slideDown 0.3s ease-out;
+        animation: slideDown 0.3s;
     `;
     notification.textContent = text;
     document.body.appendChild(notification);
     
     setTimeout(() => {
-        notification.style.animation = 'slideUp 0.3s ease-out';
+        notification.style.animation = 'slideUp 0.3s';
         setTimeout(() => notification.remove(), 300);
-    }, 3000);
+    }, 2000);
 }
 
-// Сохранение/загрузка
-function updateBalance() {
-    document.getElementById('balance').textContent = userData.balance;
-    saveProgress();
+// Loading
+function showLoading() {
+    isLoading = true;
 }
 
-function saveProgress() {
+function hideLoading() {
+    isLoading = false;
+}
+
+// LocalStorage fallback
+function saveToLocalStorage() {
     localStorage.setItem('userData', JSON.stringify(userData));
-}
-
-function loadProgress() {
-    const saved = localStorage.getItem('userData');
-    if (saved) {
-        const data = JSON.parse(saved);
-        userData.balance = data.balance || 1000;
-        userData.level = data.level || 1;
-        userData.exp = data.exp || 0;
-        userData.expToNextLevel = data.expToNextLevel || 100;
-    }
-}
-
-function saveInventory() {
-    localStorage.setItem('inventory', JSON.stringify(inventory));
-}
-
-function loadInventory() {
-    const saved = localStorage.getItem('inventory');
-    if (saved) inventory = JSON.parse(saved);
-}
-
-function saveHistory() {
+    localStorage.setItem('upgrades', JSON.stringify(upgrades));
+    localStorage.setItem('achievements', JSON.stringify(achievements));
     localStorage.setItem('history', JSON.stringify(openHistory));
 }
 
-function loadHistoryData() {
-    const saved = localStorage.getItem('history');
-    if (saved) openHistory = JSON.parse(saved);
+function loadFromLocalStorage() {
+    const saved = localStorage.getItem('userData');
+    if (saved) userData = { ...userData, ...JSON.parse(saved) };
+    
+    const savedUpgrades = localStorage.getItem('upgrades');
+    if (savedUpgrades) upgrades = JSON.parse(savedUpgrades);
+    
+    const savedAch = localStorage.getItem('achievements');
+    if (savedAch) achievements = JSON.parse(savedAch);
+    
+    const savedHistory = localStorage.getItem('history');
+    if (savedHistory) openHistory = JSON.parse(savedHistory);
 }
 
-function saveAchievements() {
-    localStorage.setItem('achievements', JSON.stringify(achievements));
-}
-
-function loadAchievementsData() {
-    const saved = localStorage.getItem('achievements');
-    if (saved) {
-        const savedAch = JSON.parse(saved);
-        savedAch.forEach((saved, index) => {
-            if (achievements[index]) {
-                achievements[index].progress = saved.progress;
-                achievements[index].unlocked = saved.unlocked;
-            }
-        });
-    }
-}
-
-// Добавляем стили для анимаций
+// Стили для анимаций
 const style = document.createElement('style');
 style.textContent = `
     @keyframes slideDown {
@@ -573,9 +702,6 @@ style.textContent = `
     @keyframes slideUp {
         from { transform: translate(-50%, 0); opacity: 1; }
         to { transform: translate(-50%, -100%); opacity: 0; }
-    }
-    @keyframes confettiFall {
-        to { transform: translateY(100vh) rotate(360deg); opacity: 0; }
     }
 `;
 document.head.appendChild(style);
