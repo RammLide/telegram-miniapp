@@ -20,7 +20,13 @@ from database import (
     update_user_upgrade,
     get_user_achievements_db,
     update_user_achievement,
-    get_user_info
+    get_user_info,
+    get_referral_code,
+    get_referrals_count,
+    get_referrals_earned,
+    get_leaderboard,
+    get_user_rank,
+    update_rating_score
 )
 
 # Данные кейсов (те же, что в app.js)
@@ -197,6 +203,8 @@ def setup_routes(app):
     app.router.add_post('/api/game_data', get_game_data_endpoint)
     app.router.add_post('/api/save_game_data', save_game_data_endpoint)
     app.router.add_post('/api/user_info', get_user_info_endpoint)
+    app.router.add_post('/api/referral_data', get_referral_data_endpoint)
+    app.router.add_post('/api/leaderboard', get_leaderboard_endpoint)
     
     # Статические файлы для Mini App
     app.router.add_static('/webapp/', path='webapp/', name='webapp')
@@ -300,4 +308,51 @@ async def get_user_info_endpoint(request):
     
     except Exception as e:
         logger.error(f"Error in get_user_info: {e}")
+        return web.json_response({'error': str(e)}, status=500)
+
+
+async def get_referral_data_endpoint(request):
+    """Получение реферальных данных пользователя"""
+    try:
+        data = await request.json()
+        user_id = data.get('user_id')
+        
+        if not user_id:
+            return web.json_response({'error': 'user_id required'}, status=400)
+        
+        referral_code = await get_referral_code(user_id)
+        referrals_count = await get_referrals_count(user_id)
+        referrals_earned = await get_referrals_earned(user_id)
+        
+        return web.json_response({
+            'referral_code': referral_code,
+            'referrals_count': referrals_count,
+            'referrals_earned': referrals_earned
+        })
+    
+    except Exception as e:
+        logger.error(f"Error in get_referral_data: {e}")
+        return web.json_response({'error': str(e)}, status=500)
+
+
+async def get_leaderboard_endpoint(request):
+    """Получение рейтинга игроков"""
+    try:
+        data = await request.json()
+        user_id = data.get('user_id')
+        limit = data.get('limit', 100)
+        
+        if not user_id:
+            return web.json_response({'error': 'user_id required'}, status=400)
+        
+        leaderboard = await get_leaderboard(limit)
+        user_rank = await get_user_rank(user_id)
+        
+        return web.json_response({
+            'leaderboard': leaderboard,
+            'user_rank': user_rank
+        })
+    
+    except Exception as e:
+        logger.error(f"Error in get_leaderboard: {e}")
         return web.json_response({'error': str(e)}, status=500)

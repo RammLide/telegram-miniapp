@@ -18,7 +18,12 @@ let userData = {
     energy: 1000,
     maxEnergy: 1000,
     coinsPerClick: 1,
-    totalClicks: 0
+    totalClicks: 0,
+    ratingScore: 0,
+    userRank: 0,
+    referralCode: '',
+    referralsCount: 0,
+    referralsEarned: 0
 };
 
 // Игровые данные
@@ -26,6 +31,7 @@ let inventory = [];
 let openHistory = [];
 let upgrades = [];
 let achievements = [];
+let leaderboard = [];
 let isLoading = false;
 
 // Улучшения
@@ -33,17 +39,69 @@ const upgradesData = [
     { id: 'click_power', name: 'Сила клика', desc: 'Увеличивает монеты за клик', icon: '💪', baseCost: 100, costMultiplier: 1.5, effect: 1 },
     { id: 'max_energy', name: 'Больше энергии', desc: 'Увеличивает максимум энергии', icon: '⚡', baseCost: 200, costMultiplier: 1.6, effect: 100 },
     { id: 'energy_regen', name: 'Регенерация', desc: 'Быстрее восстанавливает энергию', icon: '🔋', baseCost: 300, costMultiplier: 1.7, effect: 1 },
-    { id: 'auto_clicker', name: 'Авто-клик', desc: 'Монеты в секунду', icon: '🤖', baseCost: 500, costMultiplier: 2.0, effect: 1 }
+    { id: 'auto_clicker', name: 'Авто-клик', desc: 'Монеты в секунду', icon: '🤖', baseCost: 500, costMultiplier: 2.0, effect: 1 },
+    { id: 'lucky_case', name: 'Удача', desc: 'Шанс лучших предметов', icon: '🍀', baseCost: 800, costMultiplier: 1.8, effect: 5 },
+    { id: 'exp_boost', name: 'Опыт x2', desc: 'Удваивает получаемый опыт', icon: '📚', baseCost: 1000, costMultiplier: 2.2, effect: 2 },
+    { id: 'coin_magnet', name: 'Магнит монет', desc: 'Бонус к заработку', icon: '🧲', baseCost: 1500, costMultiplier: 1.9, effect: 10 },
+    { id: 'energy_saver', name: 'Экономия', desc: 'Меньше тратит энергии', icon: '💚', baseCost: 2000, costMultiplier: 2.1, effect: 1 },
+    { id: 'mega_click', name: 'Мега-клик', desc: 'Огромный бонус к клику', icon: '💥', baseCost: 3000, costMultiplier: 2.5, effect: 5 },
+    { id: 'case_discount', name: 'Скидка', desc: 'Кейсы дешевле на 10%', icon: '💸', baseCost: 2500, costMultiplier: 2.0, effect: 10 },
+    { id: 'double_reward', name: 'Двойная награда', desc: 'Шанс x2 награды', icon: '🎁', baseCost: 4000, costMultiplier: 2.3, effect: 15 },
+    { id: 'speed_boost', name: 'Ускорение', desc: 'Быстрее все действия', icon: '⚡', baseCost: 5000, costMultiplier: 2.4, effect: 20 },
+    { id: 'golden_touch', name: 'Золотое касание', desc: 'Больше монет везде', icon: '✨', baseCost: 7000, costMultiplier: 2.6, effect: 25 },
+    { id: 'legendary_luck', name: 'Легендарная удача', desc: 'Больше легендарок', icon: '🌟', baseCost: 10000, costMultiplier: 3.0, effect: 10 },
+    { id: 'turbo_energy', name: 'Турбо энергия', desc: 'Супер регенерация энергии', icon: '🚀', baseCost: 12000, costMultiplier: 2.8, effect: 2 },
+    { id: 'critical_hit', name: 'Критический удар', desc: 'Шанс x5 монет за клик', icon: '💢', baseCost: 15000, costMultiplier: 3.2, effect: 20 },
+    { id: 'treasure_hunter', name: 'Охотник за сокровищами', desc: '+50% к ценности предметов', icon: '🗺️', baseCost: 18000, costMultiplier: 2.9, effect: 50 },
+    { id: 'time_warp', name: 'Искажение времени', desc: 'Ускоряет все процессы', icon: '⏰', baseCost: 20000, costMultiplier: 3.5, effect: 30 },
+    { id: 'diamond_hands', name: 'Алмазные руки', desc: 'Больше редких предметов', icon: '💎', baseCost: 25000, costMultiplier: 3.3, effect: 15 },
+    { id: 'infinity_energy', name: 'Бесконечная энергия', desc: 'Огромный запас энергии', icon: '♾️', baseCost: 30000, costMultiplier: 3.8, effect: 500 },
+    { id: 'god_mode', name: 'Режим бога', desc: 'Максимальные бонусы', icon: '👑', baseCost: 50000, costMultiplier: 4.0, effect: 100 }
 ];
 
 // Достижения
 const achievementsData = [
     { id: 'first_click', name: 'Первый клик', desc: 'Сделай первый клик', icon: '👆', target: 1, progress: 0, unlocked: false },
     { id: 'clicker_100', name: 'Кликер', desc: 'Сделай 100 кликов', icon: '🖱️', target: 100, progress: 0, unlocked: false },
+    { id: 'clicker_1000', name: 'Мастер кликов', desc: 'Сделай 1000 кликов', icon: '⚡', target: 1000, progress: 0, unlocked: false },
+    { id: 'clicker_5000', name: 'Супер кликер', desc: 'Сделай 5000 кликов', icon: '💪', target: 5000, progress: 0, unlocked: false },
+    { id: 'clicker_10000', name: 'Легенда кликов', desc: 'Сделай 10000 кликов', icon: '💫', target: 10000, progress: 0, unlocked: false },
+    { id: 'clicker_50000', name: 'Бог кликов', desc: 'Сделай 50000 кликов', icon: '👑', target: 50000, progress: 0, unlocked: false },
     { id: 'first_case', name: 'Первый кейс', desc: 'Открой первый кейс', icon: '🎁', target: 1, progress: 0, unlocked: false },
+    { id: 'case_10', name: 'Коллекционер', desc: 'Открой 10 кейсов', icon: '📦', target: 10, progress: 0, unlocked: false },
+    { id: 'case_50', name: 'Охотник за кейсами', desc: 'Открой 50 кейсов', icon: '🎯', target: 50, progress: 0, unlocked: false },
+    { id: 'case_100', name: 'Мастер кейсов', desc: 'Открой 100 кейсов', icon: '👑', target: 100, progress: 0, unlocked: false },
+    { id: 'case_500', name: 'Король кейсов', desc: 'Открой 500 кейсов', icon: '🔥', target: 500, progress: 0, unlocked: false },
+    { id: 'case_1000', name: 'Легенда кейсов', desc: 'Открой 1000 кейсов', icon: '💎', target: 1000, progress: 0, unlocked: false },
     { id: 'rich', name: 'Богач', desc: 'Накопи 10000 монет', icon: '💰', target: 10000, progress: 0, unlocked: false },
+    { id: 'very_rich', name: 'Очень богатый', desc: 'Накопи 50000 монет', icon: '💵', target: 50000, progress: 0, unlocked: false },
+    { id: 'millionaire', name: 'Миллионер', desc: 'Накопи 100000 монет', icon: '💎', target: 100000, progress: 0, unlocked: false },
+    { id: 'multimillionaire', name: 'Мультимиллионер', desc: 'Накопи 500000 монет', icon: '🏆', target: 500000, progress: 0, unlocked: false },
     { id: 'level_5', name: 'Опытный', desc: 'Достигни 5 уровня', icon: '⭐', target: 5, progress: 0, unlocked: false },
-    { id: 'upgrader', name: 'Улучшатель', desc: 'Купи 5 улучшений', icon: '⬆️', target: 5, progress: 0, unlocked: false }
+    { id: 'level_10', name: 'Профи', desc: 'Достигни 10 уровня', icon: '🌟', target: 10, progress: 0, unlocked: false },
+    { id: 'level_25', name: 'Мастер', desc: 'Достигни 25 уровня', icon: '✨', target: 25, progress: 0, unlocked: false },
+    { id: 'level_50', name: 'Эксперт', desc: 'Достигни 50 уровня', icon: '🎖️', target: 50, progress: 0, unlocked: false },
+    { id: 'level_100', name: 'Легенда', desc: 'Достигни 100 уровня', icon: '👑', target: 100, progress: 0, unlocked: false },
+    { id: 'upgrader', name: 'Улучшатель', desc: 'Купи 5 улучшений', icon: '⬆️', target: 5, progress: 0, unlocked: false },
+    { id: 'upgrader_pro', name: 'Про улучшатель', desc: 'Купи 15 улучшений', icon: '🚀', target: 15, progress: 0, unlocked: false },
+    { id: 'upgrader_master', name: 'Мастер улучшений', desc: 'Купи 30 улучшений', icon: '💫', target: 30, progress: 0, unlocked: false },
+    { id: 'legendary_item', name: 'Легендарка!', desc: 'Получи легендарный предмет', icon: '🏆', target: 1, progress: 0, unlocked: false },
+    { id: 'legendary_5', name: 'Коллекция легенд', desc: 'Получи 5 легендарных предметов', icon: '🌟', target: 5, progress: 0, unlocked: false },
+    { id: 'legendary_10', name: 'Мастер легенд', desc: 'Получи 10 легендарных предметов', icon: '💎', target: 10, progress: 0, unlocked: false },
+    { id: 'daily_player', name: 'Ежедневный игрок', desc: 'Забери 7 дневных наград', icon: '📅', target: 7, progress: 0, unlocked: false },
+    { id: 'daily_30', name: 'Преданный игрок', desc: 'Забери 30 дневных наград', icon: '🎯', target: 30, progress: 0, unlocked: false },
+    { id: 'referrer', name: 'Друг', desc: 'Пригласи 1 друга', icon: '👥', target: 1, progress: 0, unlocked: false },
+    { id: 'referrer_5', name: 'Общительный', desc: 'Пригласи 5 друзей', icon: '🤝', target: 5, progress: 0, unlocked: false },
+    { id: 'referrer_pro', name: 'Популярный', desc: 'Пригласи 10 друзей', icon: '🎉', target: 10, progress: 0, unlocked: false },
+    { id: 'referrer_master', name: 'Звезда', desc: 'Пригласи 25 друзей', icon: '⭐', target: 25, progress: 0, unlocked: false },
+    { id: 'referrer_legend', name: 'Инфлюенсер', desc: 'Пригласи 50 друзей', icon: '🔥', target: 50, progress: 0, unlocked: false },
+    { id: 'top_100', name: 'Топ 100', desc: 'Попади в топ 100 рейтинга', icon: '🥉', target: 1, progress: 0, unlocked: false },
+    { id: 'top_50', name: 'Топ 50', desc: 'Попади в топ 50 рейтинга', icon: '🥈', target: 1, progress: 0, unlocked: false },
+    { id: 'top_10', name: 'Топ 10', desc: 'Попади в топ 10 рейтинга', icon: '🥇', target: 1, progress: 0, unlocked: false },
+    { id: 'top_1', name: 'Чемпион', desc: 'Стань первым в рейтинге', icon: '👑', target: 1, progress: 0, unlocked: false },
+    { id: 'energy_master', name: 'Энергичный', desc: 'Достигни 5000 макс. энергии', icon: '⚡', target: 5000, progress: 0, unlocked: false },
+    { id: 'speed_demon', name: 'Скоростной', desc: 'Сделай 100 кликов за минуту', icon: '💨', target: 100, progress: 0, unlocked: false },
+    { id: 'lucky_one', name: 'Везунчик', desc: 'Получи 3 легендарки подряд', icon: '🍀', target: 3, progress: 0, unlocked: false }
 ];
 
 // Кейсы
@@ -129,6 +187,10 @@ async function initApp() {
     // Обработчики событий
     setupEventListeners();
     
+    // Загружаем рейтинг и реферальные данные
+    await loadLeaderboard();
+    await loadReferralData();
+    
     // Запускаем регенерацию энергии
     startEnergyRegen();
     
@@ -208,6 +270,7 @@ function setupEventListeners() {
     
     // Приглашение друзей
     document.getElementById('inviteBtn').addEventListener('click', inviteFriend);
+    document.getElementById('copyRefLink')?.addEventListener('click', copyReferralLink);
 }
 
 // Загрузка данных с сервера
@@ -266,6 +329,11 @@ async function loadGameData() {
                 // Если не удалось получить с сервера, используем данные из Telegram
                 userData.username = tg.initDataUnsafe?.user?.first_name || tg.initDataUnsafe?.user?.username || userData.firstName;
                 userData.firstName = tg.initDataUnsafe?.user?.first_name || userData.firstName;
+            }
+            
+            // Получаем рейтинг пользователя
+            if (data.game_data && data.game_data.rating_score !== undefined) {
+                userData.ratingScore = data.game_data.rating_score;
             }
             
             console.log('✅ Game data loaded successfully from server');
@@ -345,6 +413,10 @@ function switchTab(tabName) {
     if (tabName === 'earn') {
         loadHistory();
         loadAchievements();
+    } else if (tabName === 'friends') {
+        loadReferralData();
+    } else if (tabName === 'rating') {
+        loadLeaderboard();
     }
 }
 
@@ -365,10 +437,20 @@ function handleTap(e) {
     // Добавляем опыт
     addExp(1);
     
+    // Обновляем рейтинг (рейтинг = уровень * 100 + баланс / 10)
+    updateRatingScore();
+    
     // Обновляем достижения
     updateAchievement('first_click', 1);
-    updateAchievement('clicker_100', 1);
+    updateAchievement('clicker_100', userData.totalClicks);
+    updateAchievement('clicker_1000', userData.totalClicks);
+    updateAchievement('clicker_5000', userData.totalClicks);
+    updateAchievement('clicker_10000', userData.totalClicks);
+    updateAchievement('clicker_50000', userData.totalClicks);
     updateAchievement('rich', userData.balance);
+    updateAchievement('very_rich', userData.balance);
+    updateAchievement('millionaire', userData.balance);
+    updateAchievement('multimillionaire', userData.balance);
     
     // Показываем анимацию
     showTapAnimation(e, userData.coinsPerClick);
@@ -427,6 +509,13 @@ function addExp(amount) {
         tg.HapticFeedback.notificationOccurred('success');
         
         updateAchievement('level_5', userData.level);
+        updateAchievement('level_10', userData.level);
+        updateAchievement('level_25', userData.level);
+        updateAchievement('level_50', userData.level);
+        updateAchievement('level_100', userData.level);
+        
+        // Обновляем рейтинг при повышении уровня
+        updateRatingScore();
     }
     
     updateUI();
@@ -554,7 +643,22 @@ function openCase() {
         
         addToHistory(currentCase.name, item);
         updateAchievement('first_case', 1);
+        updateAchievement('case_10', openHistory.length);
+        updateAchievement('case_50', openHistory.length);
+        updateAchievement('case_100', openHistory.length);
+        updateAchievement('case_500', openHistory.length);
+        updateAchievement('case_1000', openHistory.length);
         updateAchievement('rich', userData.balance);
+        updateAchievement('very_rich', userData.balance);
+        updateAchievement('millionaire', userData.balance);
+        updateAchievement('multimillionaire', userData.balance);
+        
+        if (item.rarity === 'legendary') {
+            updateAchievement('legendary_item', 1);
+        }
+        
+        // Обновляем рейтинг
+        updateRatingScore();
         
         updateUI();
         
@@ -654,7 +758,13 @@ function buyUpgrade(upgradeId) {
         userData.energy = Math.min(userData.energy, userData.maxEnergy);
     }
     
-    updateAchievement('upgrader', upgrades.reduce((sum, u) => sum + u.level, 0));
+    const totalUpgrades = upgrades.reduce((sum, u) => sum + u.level, 0);
+    updateAchievement('upgrader', totalUpgrades);
+    updateAchievement('upgrader_pro', totalUpgrades);
+    updateAchievement('upgrader_master', totalUpgrades);
+    
+    // Обновляем рейтинг
+    updateRatingScore();
     
     updateUI();
     loadUpgrades();
@@ -751,8 +861,134 @@ function updateAchievement(id, value) {
 
 // Приглашение друзей
 function inviteFriend() {
-    const inviteLink = `https://t.me/share/url?url=https://t.me/${tg.initDataUnsafe?.bot?.username || 'yourbot'}?start=${userData.userId}`;
-    tg.openTelegramLink(inviteLink);
+    const botUsername = tg.initDataUnsafe?.bot?.username || 'yourbot';
+    const inviteLink = `https://t.me/${botUsername}?start=ref_${userData.referralCode}`;
+    const shareText = `🎮 Присоединяйся к Case Clicker!\n\n🎁 Получи бонус при регистрации!\n💰 Открывай кейсы и зарабатывай монеты!\n\n`;
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=${encodeURIComponent(shareText)}`;
+    tg.openTelegramLink(shareUrl);
+}
+
+function copyReferralLink() {
+    const botUsername = tg.initDataUnsafe?.bot?.username || 'yourbot';
+    const inviteLink = `https://t.me/${botUsername}?start=ref_${userData.referralCode}`;
+    
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(inviteLink).then(() => {
+            showNotification('Ссылка скопирована!');
+            tg.HapticFeedback.notificationOccurred('success');
+        });
+    } else {
+        showNotification('Не удалось скопировать');
+    }
+}
+
+// Загрузка реферальных данных
+async function loadReferralData() {
+    try {
+        const response = await fetch(`${API_URL}/api/referral_data`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userData.userId })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            userData.referralCode = data.referral_code || '';
+            userData.referralsCount = data.referrals_count || 0;
+            userData.referralsEarned = data.referrals_earned || 0;
+            
+            // Обновляем UI
+            document.getElementById('friendsCount').textContent = userData.referralsCount;
+            document.getElementById('friendsEarned').textContent = userData.referralsEarned.toLocaleString();
+            
+            // Обновляем достижения
+            updateAchievement('referrer', userData.referralsCount);
+            updateAchievement('referrer_5', userData.referralsCount);
+            updateAchievement('referrer_pro', userData.referralsCount);
+            updateAchievement('referrer_master', userData.referralsCount);
+            updateAchievement('referrer_legend', userData.referralsCount);
+        }
+    } catch (error) {
+        console.error('Error loading referral data:', error);
+    }
+}
+
+// Загрузка рейтинга
+async function loadLeaderboard() {
+    try {
+        const response = await fetch(`${API_URL}/api/leaderboard`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userData.userId, limit: 100 })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            leaderboard = data.leaderboard || [];
+            userData.userRank = data.user_rank || 0;
+            
+            // Обновляем достижения по рейтингу
+            if (userData.userRank > 0) {
+                if (userData.userRank <= 100) updateAchievement('top_100', 1);
+                if (userData.userRank <= 50) updateAchievement('top_50', 1);
+                if (userData.userRank <= 10) updateAchievement('top_10', 1);
+                if (userData.userRank === 1) updateAchievement('top_1', 1);
+            }
+            
+            displayLeaderboard();
+        }
+    } catch (error) {
+        console.error('Error loading leaderboard:', error);
+    }
+}
+
+// Отображение рейтинга
+function displayLeaderboard() {
+    const leaderboardList = document.getElementById('leaderboardList');
+    if (!leaderboardList) return;
+    
+    leaderboardList.innerHTML = '';
+    
+    if (leaderboard.length === 0) {
+        leaderboardList.innerHTML = '<p style="text-align:center;opacity:0.5;">Рейтинг пуст</p>';
+        return;
+    }
+    
+    leaderboard.forEach((player, index) => {
+        const item = document.createElement('div');
+        item.className = `leaderboard-item ${player.user_id === userData.userId ? 'current-user' : ''}`;
+        
+        let rankIcon = '👤';
+        if (index === 0) rankIcon = '🥇';
+        else if (index === 1) rankIcon = '🥈';
+        else if (index === 2) rankIcon = '🥉';
+        
+        item.innerHTML = `
+            <div class="rank">${rankIcon} ${index + 1}</div>
+            <div class="player-info">
+                <div class="player-name">${player.username}</div>
+                <div class="player-stats">Уровень ${player.level} • 💰 ${player.balance.toLocaleString()}</div>
+            </div>
+            <div class="player-score">${player.rating_score.toLocaleString()}</div>
+        `;
+        leaderboardList.appendChild(item);
+    });
+    
+    // Показываем позицию текущего пользователя
+    const userRankEl = document.getElementById('userRank');
+    if (userRankEl && userData.userRank > 0) {
+        userRankEl.textContent = `Ваша позиция: #${userData.userRank}`;
+    }
+}
+
+// Обновление рейтинга пользователя
+function updateRatingScore() {
+    // Рейтинг = уровень * 100 + баланс / 10 + клики / 100
+    userData.ratingScore = Math.floor(
+        userData.level * 100 + 
+        userData.balance / 10 + 
+        userData.totalClicks / 100
+    );
 }
 
 // Уведомления

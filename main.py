@@ -14,7 +14,8 @@ from database import (
     init_db, add_user, get_all_users, get_users_count,
     add_admin, remove_admin, is_admin as check_is_admin, get_all_admins, get_admins_count,
     log_event, get_users_today, get_users_week, get_users_month, 
-    get_active_users_today, get_user_info, get_broadcast_stats
+    get_active_users_today, get_user_info, get_broadcast_stats,
+    get_referral_code, get_user_by_referral_code, add_referral, claim_referral_bonus
 )
 from keyboards import (
     get_main_keyboard, 
@@ -79,6 +80,34 @@ async def is_super_admin(user_id: int) -> bool:
 @dp.message(Command("start"))
 async def cmd_start(message: Message):
     """Обработчик команды /start"""
+    # Проверяем реферальную ссылку
+    referrer_id = None
+    if message.text and len(message.text.split()) > 1:
+        args = message.text.split()[1]
+        if args.startswith('ref_'):
+            ref_code = args[4:]  # Убираем префикс 'ref_'
+            referrer_id = await get_user_by_referral_code(ref_code)
+            
+            # Проверяем, что пользователь не приглашает сам себя
+            if referrer_id and referrer_id != message.from_user.id:
+                # Добавляем реферала
+                success = await add_referral(referrer_id, message.from_user.id)
+                if success:
+                    # Начисляем бонус рефереру после того как новый пользователь зарегистрируется
+                    await claim_referral_bonus(referrer_id, message.from_user.id, 1000)
+                    
+                    # Уведомляем реферера
+                    try:
+                        await bot.send_message(
+                            referrer_id,
+                            f"🎉 <b>Новый друг!</b>\n\n"
+                            f"Ваш друг присоединился к игре!\n"
+                            f"💰 Вы получили <b>1000 монет</b>!",
+                            parse_mode="HTML"
+                        )
+                    except:
+                        pass
+    
     await add_user(
         user_id=message.from_user.id,
         username=message.from_user.username,
@@ -86,13 +115,18 @@ async def cmd_start(message: Message):
         last_name=message.from_user.last_name
     )
     
+    # Генерируем реферальный код для пользователя если его нет
+    await get_referral_code(message.from_user.id)
+    
     welcome_text = (
         f"👋 <b>Добро пожаловать, {message.from_user.first_name}!</b>\n\n"
         "🎮 <b>Case Clicker - Hamster Kombat Style</b>\n\n"
         "🎁 Открывай кейсы и получай предметы\n"
         "👆 Кликай и зарабатывай монеты\n"
         "⬆️ Улучшай свои способности\n"
-        "🏆 Получай достижения\n\n"
+        "🏆 Получай достижения\n"
+        "👥 Приглашай друзей и получай бонусы\n"
+        "📊 Соревнуйся в рейтинге\n\n"
         "🚀 Нажми <b>\"🎁 Открыть кейсы\"</b> чтобы начать!"
     )
     

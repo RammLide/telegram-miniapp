@@ -18,7 +18,9 @@ async def init_db():
                 first_name TEXT,
                 last_name TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                referrer_id INTEGER,
+                referral_code TEXT UNIQUE
             )
         """)
         await db.execute("""
@@ -79,6 +81,7 @@ async def init_db():
                 energy INTEGER DEFAULT 1000,
                 max_energy INTEGER DEFAULT 1000,
                 last_energy_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                rating_score INTEGER DEFAULT 0,
                 FOREIGN KEY (user_id) REFERENCES users(user_id)
             )
         """)
@@ -102,6 +105,17 @@ async def init_db():
                 unlocked_at TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(user_id),
                 UNIQUE(user_id, achievement_id)
+            )
+        """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS referrals (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                referrer_id INTEGER,
+                referred_id INTEGER,
+                bonus_claimed INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (referrer_id) REFERENCES users(user_id),
+                FOREIGN KEY (referred_id) REFERENCES users(user_id)
             )
         """)
         await db.commit()
@@ -549,3 +563,156 @@ async def update_user_achievement(user_id: int, achievement_id: str, progress: i
                 unlocked_at = COALESCE(user_achievements.unlocked_at, excluded.unlocked_at)
         """, (user_id, achievement_id, progress, int(unlocked), unlocked_at))
         await db.commit()
+
+
+# ==================== ФУНКЦИИ ДЛЯ РЕФЕРАЛОВ ====================
+
+async def generate_referral_code(user_id: int) -> str:
+    """Генерация уникального реферального кода"""
+    import hashlib
+    code = hashlib.md5(f"{user_id}{datetime.now().timestamp()}".encode()).hexdigest()[:8]
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        await db.execute("""
+            UPDATE users SET referral_code = ? WHERE user_id = ?
+        """, (code, user_id))
+        await db.commit()
+    return code
+
+
+async def get_referral_code(user_id: int) -> str:
+    """Получение реферального кода пользователя"""
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        async with db.execute("""
+            SELECT referral_code FROM users WHERE user_id = ?
+        """, (user_id,)) as cursor:
+            result = await cursor.fetchone()
+            if result and result[0]:
+                return result[0]
+            else:
+                # Генерируем новый код если его нет
+                return await generate_referral_code(user_id)
+
+
+async def get_user_by_referral_code(code: str) -> Optional[int]:
+    """Получение user_id по реферальному коду"""
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        async with db.execute("""
+            SELECT user_id FROM users WHERE referral_code = ?
+        """, (code,)) as cursor:
+            result = await cursor.fetchone()
+            return result[0] if result else None
+
+
+async def add_referral(referrer_id: int, referred_id: int):
+    """Добавление реферала"""
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        # Проверяем, не был ли уже добавлен этот реферал
+        async with db.execute("""
+            SELECT id FROM referrals WHERE referred_id = ?
+        """, (referred_id,)) as cursor:
+            if await cursor.fetchone():
+                return False
+        
+        # Добавляем реферала
+        await db.execute("""
+            INSERT INTO referrals (referrer_id, referred_id)
+            VALUES (?, ?)
+        """, (referrer_id, referred_id))
+        
+        # Обновляем referrer_id у пользователя
+        await db.execute("""
+            UPDATE users SET referrer_id = ? WHERE user_id = ?
+        """, (referrer_id, referred_id))
+        
+        await db.commit()
+        return True
+
+
+async def claim_referral_bonus(referrer_id: int, referred_id: int, bonus: int = 1000):
+    """Начисление бонуса за реферала"""
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        # Проверяем, не был ли уже получен бонус
+        async with db.execute("""
+            SELECT bonus_claimed FROM referrals 
+            WHERE referrer_id = ? AND referred_id = ?
+        """, (referrer_id, referred_id)) as cursor:
+            result = await cursor.fetchone()
+            if not result or result[0]:
+                return False
+        
+        # Начисляем бонус
+        await add_balance(referrer_id, bonus)
+        
+        # Отмечаем бонус как полученный
+        await db.execute("""
+            UPDATE referrals SET bonus_claimed = 1 
+            WHERE referrer_id = ? AND referred_id = ?
+        """, (referrer_id, referred_id))
+        
+        await db.commit()
+        return True
+
+
+async def get_referrals_count(user_id: int) -> int:
+    """Получение количества рефералов"""
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        async with db.execute("""
+            SELECT COUNT(*) FROM referrals WHERE referrer_id = ?
+        """, (user_id,)) as cursor:
+            result = await cursor.fetchone()
+            return result[0] if result else 0
+
+
+async def get_referrals_earned(user_id: int) -> int:
+    """Получение заработка с рефералов"""
+    count = await get_referrals_count(user_id)
+    return count * 1000  # 1000 монет за каждого реферала
+
+
+# ==================== ФУНКЦИИ ДЛЯ РЕЙТИНГА ====================
+
+async def update_rating_score(user_id: int, score: int):
+    """Обновление рейтинга пользователя"""
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        await db.execute("""
+            UPDATE user_game_data SET rating_score = ? WHERE user_id = ?
+        """, (score, user_id))
+        await db.commit()
+
+
+async def get_leaderboard(limit: int = 100) -> List[Dict]:
+    """Получение топ игроков по рейтингу"""
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        async with db.execute("""
+            SELECT u.user_id, u.username, u.first_name, 
+                   g.level, g.rating_score, b.balance
+            FROM users u
+            LEFT JOIN user_game_data g ON u.user_id = g.user_id
+            LEFT JOIN user_balance b ON u.user_id = b.user_id
+            ORDER BY g.rating_score DESC, b.balance DESC
+            LIMIT ?
+        """, (limit,)) as cursor:
+            rows = await cursor.fetchall()
+            return [
+                {
+                    "user_id": row[0],
+                    "username": row[1] or row[2] or "Игрок",
+                    "level": row[3] or 1,
+                    "rating_score": row[4] or 0,
+                    "balance": row[5] or 0
+                }
+                for row in rows
+            ]
+
+
+async def get_user_rank(user_id: int) -> int:
+    """Получение позиции пользователя в рейтинге"""
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        async with db.execute("""
+            SELECT COUNT(*) + 1 FROM user_game_data
+            WHERE rating_score > (
+                SELECT rating_score FROM user_game_data WHERE user_id = ?
+            )
+        """, (user_id,)) as cursor:
+            result = await cursor.fetchone()
+            return result[0] if result else 0

@@ -66,9 +66,9 @@
                 <span class="nav-icon">⬆️</span>
                 <span class="nav-label">Буст</span>
             </button>
-            <button class="nav-btn" data-tab="earn">
-                <span class="nav-icon">💎</span>
-                <span class="nav-label">Заработок</span>
+            <button class="nav-btn" data-tab="rating">
+                <span class="nav-icon">🏆</span>
+                <span class="nav-label">Рейтинг</span>
             </button>
             <button class="nav-btn" data-tab="friends">
                 <span class="nav-icon">👥</span>
@@ -109,19 +109,13 @@
                 <div class="upgrades-list" id="upgradesList"></div>
             </section>
 
-            <!-- Вкладка: Заработок -->
-            <section class="tab-content" id="earn-tab">
-                <h2 class="tab-title">💎 Заработок</h2>
-                
-                <div class="earn-section">
-                    <h3>📜 История открытий</h3>
-                    <div class="history-list" id="historyList"></div>
+            <!-- Вкладка: Рейтинг -->
+            <section class="tab-content" id="rating-tab">
+                <h2 class="tab-title">🏆 Рейтинг игроков</h2>
+                <div class="user-rank-info" id="userRankInfo">
+                    <p id="userRank">Загрузка...</p>
                 </div>
-
-                <div class="earn-section">
-                    <h3>🏆 Достижения</h3>
-                    <div class="achievements-grid" id="achievementsGrid"></div>
-                </div>
+                <div class="leaderboard-list" id="leaderboardList"></div>
             </section>
 
             <!-- Вкладка: Друзья -->
@@ -133,12 +127,16 @@
                         <div class="bonus-text">
                             <h3>Получай бонусы!</h3>
                             <p>+1000 💰 за каждого друга</p>
-                            <p>+10% от заработка друга</p>
+                            <p>Друг получит бонус после регистрации</p>
                         </div>
                     </div>
                     
                     <button class="btn-invite" id="inviteBtn">
                         <span>📤 Пригласить друга</span>
+                    </button>
+                    
+                    <button class="btn-copy-link" id="copyRefLink">
+                        <span>📋 Скопировать ссылку</span>
                     </button>
                     
                     <div class="friends-stats">
@@ -151,6 +149,21 @@
                             <span class="stat-label">Заработано</span>
                         </div>
                     </div>
+                </div>
+            </section>
+
+            <!-- Вкладка: Заработок -->
+            <section class="tab-content" id="earn-tab">
+                <h2 class="tab-title">💎 Заработок</h2>
+                
+                <div class="earn-section">
+                    <h3>📜 История открытий</h3>
+                    <div class="history-list" id="historyList"></div>
+                </div>
+
+                <div class="earn-section">
+                    <h3>🏆 Достижения</h3>
+                    <div class="achievements-grid" id="achievementsGrid"></div>
                 </div>
             </section>
         </main>
