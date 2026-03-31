@@ -219,8 +219,6 @@ async function initApp() {
     // Инициализация UI
     updateUI();
     loadCases();
-    loadUpgrades();
-    loadAchievements();
     checkDailyReward();
     
     // Обработчики событий
@@ -465,10 +463,7 @@ function switchTab(tabName) {
     document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
     document.getElementById(`${tabName}-tab`).classList.add('active');
     
-    if (tabName === 'earn') {
-        loadHistory();
-        loadAchievements();
-    } else if (tabName === 'friends') {
+    if (tabName === 'friends') {
         loadReferralData();
     } else if (tabName === 'rating') {
         loadLeaderboard();
@@ -842,9 +837,11 @@ function showCaseResult(item) {
     tg.HapticFeedback.notificationOccurred(item.rarity === 'legendary' ? 'success' : 'warning');
 }
 
-// Улучшения
+// Улучшения (временно отключено)
+/*
 function loadUpgrades() {
     const upgradesList = document.getElementById('upgradesList');
+    if (!upgradesList) return;
     upgradesList.innerHTML = '';
     
     upgradesData.forEach(upgrade => {
@@ -914,6 +911,7 @@ function buyUpgrade(upgradeId) {
     showNotification(`${upgrade.name} улучшен!`);
     tg.HapticFeedback.notificationOccurred('success');
 }
+*/
 
 // История
 function addToHistory(caseName, item) {
@@ -928,6 +926,7 @@ function addToHistory(caseName, item) {
 
 function loadHistory() {
     const historyList = document.getElementById('historyList');
+    if (!historyList) return;
     historyList.innerHTML = '';
     
     if (openHistory.length === 0) {
@@ -958,9 +957,11 @@ function getTimeAgo(timestamp) {
     return `${Math.floor(seconds / 86400)} дн назад`;
 }
 
-// Достижения
+// Достижения (временно отключено)
+/*
 function loadAchievements() {
     const achievementsGrid = document.getElementById('achievementsGrid');
+    if (!achievementsGrid) return;
     achievementsGrid.innerHTML = '';
     
     achievementsData.forEach(achievement => {
@@ -976,6 +977,7 @@ function loadAchievements() {
         achievementsGrid.appendChild(card);
     });
 }
+*/
 
 function updateAchievement(id, value) {
     const achievement = achievementsData.find(a => a.id === id);
