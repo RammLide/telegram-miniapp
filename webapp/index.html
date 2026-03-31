@@ -9,54 +9,122 @@
 </head>
 <body>
     <div class="container">
+        <!-- Верхняя панель -->
         <header>
-            <h1>🎁 Открытие кейсов</h1>
-            <div class="user-info">
-                <span id="username">Загрузка...</span>
-                <span class="balance">💰 <span id="balance">0</span></span>
+            <h1>🎁 Case Opening</h1>
+            <div class="user-stats">
+                <div class="stat-card">
+                    <div class="stat-icon">👤</div>
+                    <div class="stat-info">
+                        <span class="stat-label">Игрок</span>
+                        <span class="stat-value" id="username">Загрузка...</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-info">
+                        <span class="stat-label">Баланс</span>
+                        <span class="stat-value" id="balance">0</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⭐</div>
+                    <div class="stat-info">
+                        <span class="stat-label">Уровень</span>
+                        <span class="stat-value" id="level">1</span>
+                    </div>
+                </div>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="expProgress"></div>
+                <span class="progress-text" id="expText">0 / 100 XP</span>
             </div>
         </header>
 
+        <!-- Навигация -->
+        <nav class="nav-tabs">
+            <button class="nav-tab active" data-tab="cases">🎁 Кейсы</button>
+            <button class="nav-tab" data-tab="inventory">📦 Инвентарь</button>
+            <button class="nav-tab" data-tab="history">📜 История</button>
+            <button class="nav-tab" data-tab="achievements">🏆 Достижения</button>
+        </nav>
+
         <main>
-            <!-- Список кейсов -->
-            <section class="cases-section">
-                <h2>Доступные кейсы</h2>
-                <div class="cases-grid" id="casesGrid">
-                    <!-- Кейсы будут загружены динамически -->
+            <!-- Вкладка: Кейсы -->
+            <section class="tab-content active" id="cases-tab">
+                <div class="daily-bonus" id="dailyBonus">
+                    <div class="bonus-icon">🎉</div>
+                    <div class="bonus-text">
+                        <h3>Ежедневный бонус!</h3>
+                        <p>Получи <span class="bonus-amount">+500 💰</span></p>
+                    </div>
+                    <button class="btn btn-bonus" id="claimBonus">Забрать</button>
                 </div>
+
+                <h2 class="section-title">Доступные кейсы</h2>
+                <div class="cases-grid" id="casesGrid"></div>
             </section>
 
-            <!-- Модальное окно открытия кейса -->
-            <div class="modal" id="openModal">
-                <div class="modal-content">
-                    <span class="close" id="closeModal">&times;</span>
-                    <h2 id="caseTitle">Кейс</h2>
-                    <div class="case-animation" id="caseAnimation">
-                        <div class="case-box">
-                            <div class="case-lid"></div>
-                            <div class="case-body"></div>
-                        </div>
+            <!-- Вкладка: Инвентарь -->
+            <section class="tab-content" id="inventory-tab">
+                <div class="inventory-header">
+                    <h2 class="section-title">Мой инвентарь</h2>
+                    <div class="inventory-stats">
+                        <span>Предметов: <strong id="itemCount">0</strong></span>
+                        <span>Общая стоимость: <strong id="totalValue">0</strong> 💎</span>
                     </div>
-                    <div class="result" id="result" style="display: none;">
-                        <div class="item-card">
-                            <div class="item-rarity" id="itemRarity"></div>
-                            <img id="itemImage" src="" alt="Item">
-                            <h3 id="itemName"></h3>
-                            <p class="item-value">💎 <span id="itemValue"></span></p>
-                        </div>
-                    </div>
-                    <button class="btn btn-primary" id="openCaseBtn">Открыть кейс</button>
                 </div>
-            </div>
+                <div class="inventory-grid" id="inventoryGrid"></div>
+            </section>
 
-            <!-- Инвентарь -->
-            <section class="inventory-section">
-                <h2>📦 Мой инвентарь</h2>
-                <div class="inventory-grid" id="inventoryGrid">
-                    <!-- Предметы будут загружены динамически -->
-                </div>
+            <!-- Вкладка: История -->
+            <section class="tab-content" id="history-tab">
+                <h2 class="section-title">История открытий</h2>
+                <div class="history-list" id="historyList"></div>
+            </section>
+
+            <!-- Вкладка: Достижения -->
+            <section class="tab-content" id="achievements-tab">
+                <h2 class="section-title">Достижения</h2>
+                <div class="achievements-grid" id="achievementsGrid"></div>
             </section>
         </main>
+
+        <!-- Модальное окно открытия кейса -->
+        <div class="modal" id="openModal">
+            <div class="modal-content">
+                <span class="close" id="closeModal">&times;</span>
+                <h2 id="caseTitle">Кейс</h2>
+                
+                <div class="case-animation" id="caseAnimation">
+                    <div class="case-box">
+                        <div class="case-glow"></div>
+                        <div class="case-lid"></div>
+                        <div class="case-body"></div>
+                        <div class="sparkles"></div>
+                    </div>
+                </div>
+
+                <div class="result" id="result" style="display: none;">
+                    <div class="confetti"></div>
+                    <div class="item-card">
+                        <div class="item-shine"></div>
+                        <div class="item-rarity" id="itemRarity"></div>
+                        <div class="item-image-wrapper">
+                            <div id="itemImage" class="item-emoji"></div>
+                        </div>
+                        <h3 id="itemName"></h3>
+                        <p class="item-value">💎 <span id="itemValue"></span></p>
+                        <div class="item-exp">+<span id="itemExp"></span> XP</div>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" id="openCaseBtn">
+                    <span class="btn-text">Открыть кейс</span>
+                    <span class="btn-price"></span>
+                </button>
+            </div>
+        </div>
     </div>
 
     <script src="app.js"></script>
