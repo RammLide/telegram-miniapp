@@ -940,6 +940,7 @@ async function loadReferralData() {
             userData.referralCode = data.referral_code || '';
             userData.referralsCount = data.referrals_count || 0;
             userData.referralsEarned = data.referrals_earned || 0;
+            const referralsList = data.referrals_list || [];
             
             console.log('🔗 Referral code set to:', userData.referralCode);
             
@@ -959,6 +960,9 @@ async function loadReferralData() {
             // Обновляем UI
             document.getElementById('friendsCount').textContent = userData.referralsCount;
             document.getElementById('friendsEarned').textContent = userData.referralsEarned.toLocaleString();
+            
+            // Отображаем список рефералов
+            displayReferralsList(referralsList);
             
             // Обновляем достижения
             updateAchievement('referrer', userData.referralsCount);
@@ -982,6 +986,33 @@ async function loadReferralData() {
             referralLinkText.style.color = '#ff6b6b';
         }
     }
+}
+
+// Отображение списка рефералов
+function displayReferralsList(referrals) {
+    const referralsListEl = document.getElementById('referralsList');
+    if (!referralsListEl) return;
+    
+    referralsListEl.innerHTML = '';
+    
+    if (referrals.length === 0) {
+        referralsListEl.innerHTML = '<p style="text-align:center;opacity:0.5;padding:20px;">Пока нет приглашенных друзей</p>';
+        return;
+    }
+    
+    referrals.forEach((referral, index) => {
+        const item = document.createElement('div');
+        item.className = 'referral-item';
+        item.innerHTML = `
+            <div class="referral-number">${index + 1}</div>
+            <div class="referral-info">
+                <div class="referral-name">${referral.first_name}</div>
+                <div class="referral-stats">Уровень ${referral.level} • 💰 ${referral.balance.toLocaleString()}</div>
+            </div>
+            <div class="referral-earned">+${referral.earned.toLocaleString()}</div>
+        `;
+        referralsListEl.appendChild(item);
+    });
 }
 
 // Загрузка рейтинга

@@ -80,11 +80,15 @@ async def is_super_admin(user_id: int) -> bool:
 @dp.message(Command("start"))
 async def cmd_start(message: Message):
     """Обработчик команды /start"""
-    # Проверяем реферальную ссылку
-    referrer_id = None
-    logger.info(f"User {message.from_user.id} started bot with text: {message.text}")
+    # Проверяем, новый ли это пользователь
+    user_info = await get_user_info(message.from_user.id)
+    is_new_user = user_info is None
     
-    if message.text and len(message.text.split()) > 1:
+    # Проверяем реферальную ссылку (только для новых пользователей)
+    referrer_id = None
+    logger.info(f"User {message.from_user.id} started bot with text: {message.text}, is_new_user: {is_new_user}")
+    
+    if is_new_user and message.text and len(message.text.split()) > 1:
         args = message.text.split()[1]
         logger.info(f"Start command args: {args}")
         
@@ -111,7 +115,7 @@ async def cmd_start(message: Message):
                         await bot.send_message(
                             referrer_id,
                             f"🎉 <b>Новый друг!</b>\n\n"
-                            f"Ваш друг присоединился к игре!\n"
+                            f"Ваш друг {message.from_user.first_name} присоединился к игре!\n"
                             f"💰 Вы получили <b>1000 монет</b>!",
                             parse_mode="HTML"
                         )
@@ -122,6 +126,8 @@ async def cmd_start(message: Message):
                     logger.warning(f"User {message.from_user.id} already registered as referral")
             else:
                 logger.warning(f"Invalid referrer or self-referral: referrer_id={referrer_id}, user_id={message.from_user.id}")
+    elif not is_new_user and message.text and len(message.text.split()) > 1:
+        logger.info(f"User {message.from_user.id} is not new, referral not counted")
     
     await add_user(
         user_id=message.from_user.id,
@@ -146,7 +152,8 @@ async def cmd_start(message: Message):
     )
     
     # Добавляем отладочную информацию о реферале
-    if referrer_id:
+    if referrer_id and is_new_user:
+        welcome_text += f"\n\n✅ <b>Вы пришли по реферальной ссылке!</b>\nРеферер получил бонус."
         welcome_text += f"\n\n✅ <b>Вы пришли по реферальной ссылке!</b>\nРеферер получил бонус."
     
     if await is_admin(message.from_user.id):

@@ -646,6 +646,64 @@ main {
     color: var(--text-secondary);
 }
 
+/* Referrals List */
+.referrals-section {
+    margin-top: 20px;
+}
+
+.referrals-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.referral-item {
+    background: rgba(255,255,255,0.05);
+    border-radius: 12px;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    border: 2px solid rgba(255,255,255,0.1);
+    transition: all 0.3s;
+}
+
+.referral-item:hover {
+    border-color: var(--gold);
+    transform: translateY(-2px);
+}
+
+.referral-number {
+    font-size: 20px;
+    font-weight: bold;
+    color: var(--gold);
+    min-width: 30px;
+    text-align: center;
+}
+
+.referral-info {
+    flex: 1;
+}
+
+.referral-name {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.referral-stats {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.referral-earned {
+    font-size: 18px;
+    font-weight: bold;
+    color: #4ade80;
+}
+
 /* Leaderboard */
 .user-rank-info {
     background: rgba(255,255,255,0.05);

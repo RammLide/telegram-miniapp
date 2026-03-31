@@ -670,6 +670,41 @@ async def get_referrals_earned(user_id: int) -> int:
     return count * 1000  # 1000 монет за каждого реферала
 
 
+async def get_referrals_list(user_id: int) -> List[Dict]:
+    """Получение списка рефералов с их профилями"""
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        async with db.execute("""
+            SELECT 
+                u.user_id,
+                u.username,
+                u.first_name,
+                g.level,
+                b.balance,
+                r.created_at,
+                r.bonus_claimed
+            FROM referrals r
+            LEFT JOIN users u ON r.referred_id = u.user_id
+            LEFT JOIN user_game_data g ON u.user_id = g.user_id
+            LEFT JOIN user_balance b ON u.user_id = b.user_id
+            WHERE r.referrer_id = ?
+            ORDER BY r.created_at DESC
+        """, (user_id,)) as cursor:
+            rows = await cursor.fetchall()
+            return [
+                {
+                    "user_id": row[0],
+                    "username": row[1] or row[2] or "Игрок",
+                    "first_name": row[2] or "Игрок",
+                    "level": row[3] or 1,
+                    "balance": row[4] or 0,
+                    "created_at": row[5],
+                    "bonus_claimed": bool(row[6]),
+                    "earned": 1000 if row[6] else 0  # Заработано с этого реферала
+                }
+                for row in rows
+            ]
+
+
 # ==================== ФУНКЦИИ ДЛЯ РЕЙТИНГА ====================
 
 async def update_rating_score(user_id: int, score: int):

@@ -24,6 +24,7 @@ from database import (
     get_referral_code,
     get_referrals_count,
     get_referrals_earned,
+    get_referrals_list,
     get_leaderboard,
     get_user_rank,
     update_rating_score
@@ -325,11 +326,13 @@ async def get_referral_data_endpoint(request):
         referral_code = await get_referral_code(user_id)
         referrals_count = await get_referrals_count(user_id)
         referrals_earned = await get_referrals_earned(user_id)
+        referrals_list = await get_referrals_list(user_id)
         
         return web.json_response({
             'referral_code': referral_code,
             'referrals_count': referrals_count,
-            'referrals_earned': referrals_earned
+            'referrals_earned': referrals_earned,
+            'referrals_list': referrals_list
         })
     
     except Exception as e:
