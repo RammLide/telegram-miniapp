@@ -868,29 +868,66 @@ function updateAchievement(id, value) {
 // Приглашение друзей
 function inviteFriend() {
     const botUsername = 'Tesjdjsj_bot';
+    
+    // Проверяем, есть ли реферальный код
+    if (!userData.referralCode) {
+        showNotification('⏳ Загрузка реферальной ссылки...');
+        // Пытаемся загрузить реферальные данные
+        loadReferralData().then(() => {
+            if (userData.referralCode) {
+                inviteFriend(); // Повторяем попытку
+            } else {
+                showNotification('❌ Ошибка загрузки ссылки');
+            }
+        });
+        return;
+    }
+    
     const inviteLink = `https://t.me/${botUsername}?start=ref_${userData.referralCode}`;
     const shareText = `🎮 Присоединяйся к Case Clicker!\n\n🎁 Получи бонус при регистрации!\n💰 Открывай кейсы и зарабатывай монеты!\n\n`;
     const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=${encodeURIComponent(shareText)}`;
+    
+    console.log('📤 Invite link:', inviteLink);
     tg.openTelegramLink(shareUrl);
 }
 
 function copyReferralLink() {
     const botUsername = 'Tesjdjsj_bot';
+    
+    // Проверяем, есть ли реферальный код
+    if (!userData.referralCode) {
+        showNotification('⏳ Загрузка реферальной ссылки...');
+        // Пытаемся загрузить реферальные данные
+        loadReferralData().then(() => {
+            if (userData.referralCode) {
+                copyReferralLink(); // Повторяем попытку
+            } else {
+                showNotification('❌ Ошибка загрузки ссылки');
+            }
+        });
+        return;
+    }
+    
     const inviteLink = `https://t.me/${botUsername}?start=ref_${userData.referralCode}`;
+    
+    console.log('📋 Copying link:', inviteLink);
     
     if (navigator.clipboard) {
         navigator.clipboard.writeText(inviteLink).then(() => {
-            showNotification('Ссылка скопирована!');
+            showNotification('✅ Ссылка скопирована!');
             tg.HapticFeedback.notificationOccurred('success');
+        }).catch(() => {
+            showNotification('❌ Не удалось скопировать');
         });
     } else {
-        showNotification('Не удалось скопировать');
+        showNotification('❌ Копирование не поддерживается');
     }
 }
 
 // Загрузка реферальных данных
 async function loadReferralData() {
     try {
+        console.log('🔄 Loading referral data for user:', userData.userId);
         const response = await fetch(`${API_URL}/api/referral_data`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -899,9 +936,12 @@ async function loadReferralData() {
         
         if (response.ok) {
             const data = await response.json();
+            console.log('📦 Referral data received:', data);
             userData.referralCode = data.referral_code || '';
             userData.referralsCount = data.referrals_count || 0;
             userData.referralsEarned = data.referrals_earned || 0;
+            
+            console.log('🔗 Referral code set to:', userData.referralCode);
             
             // Обновляем UI
             document.getElementById('friendsCount').textContent = userData.referralsCount;
@@ -913,9 +953,11 @@ async function loadReferralData() {
             updateAchievement('referrer_pro', userData.referralsCount);
             updateAchievement('referrer_master', userData.referralsCount);
             updateAchievement('referrer_legend', userData.referralsCount);
+        } else {
+            console.error('❌ Failed to load referral data, status:', response.status);
         }
     } catch (error) {
-        console.error('Error loading referral data:', error);
+        console.error('❌ Error loading referral data:', error);
     }
 }
 
