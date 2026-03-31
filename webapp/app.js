@@ -967,7 +967,7 @@ function updateAchievement(id, value) {
 
 // Приглашение друзей
 function inviteFriend() {
-    const botUsername = 'Tesjdjsj_bot';
+    const botUsername = 'turbo_tkn_bot';
     
     // Проверяем, есть ли реферальный код
     if (!userData.referralCode) {
@@ -984,7 +984,7 @@ function inviteFriend() {
     }
     
     const inviteLink = `https://t.me/${botUsername}?start=ref_${userData.referralCode}`;
-    const shareText = `🎮 Присоединяйся к Case Clicker!\n\n🎁 Получи бонус при регистрации!\n💰 Открывай кейсы и зарабатывай монеты!\n\n`;
+    const shareText = `🎮 Присоединяйся к Turbo Token!\n\n🎁 Получи бонус при регистрации!\n💰 Открывай кейсы и зарабатывай монеты!\n\n`;
     const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=${encodeURIComponent(shareText)}`;
     
     console.log('📤 Invite link:', inviteLink);
@@ -992,7 +992,7 @@ function inviteFriend() {
 }
 
 function copyReferralLink() {
-    const botUsername = 'Tesjdjsj_bot';
+    const botUsername = 'turbo_tkn_bot';
     
     // Проверяем, есть ли реферальный код
     if (!userData.referralCode) {
@@ -1048,7 +1048,7 @@ async function loadReferralData() {
             const referralLinkText = document.getElementById('referralLinkText');
             if (referralLinkText) {
                 if (userData.referralCode) {
-                    const botUsername = 'Tesjdjsj_bot';
+                    const botUsername = 'turbo_tkn_bot';
                     const inviteLink = `https://t.me/${botUsername}?start=ref_${userData.referralCode}`;
                     referralLinkText.textContent = inviteLink;
                 } else {

@@ -141,7 +141,7 @@ async def cmd_start(message: Message):
     
     welcome_text = (
         f"👋 <b>Добро пожаловать, {message.from_user.first_name}!</b>\n\n"
-        "🎮 <b>Case Clicker - Hamster Kombat Style</b>\n\n"
+        "🎮 <b>Turbo Token</b>\n\n"
         "🎁 Открывай кейсы и получай предметы\n"
         "👆 Кликай и зарабатывай монеты\n"
         "⬆️ Улучшай свои способности\n"
@@ -282,9 +282,9 @@ async def button_settings(message: Message):
     settings_text = (
         "⚙️ <b>Настройки бота</b>\n\n"
         f"🆔 ID главного админа: <code>{ADMIN_ID}</code>\n"
-        f"🤖 Версия: <b>3.1 - Hamster Kombat Style</b>\n"
+        f"🤖 Версия: <b>3.2 - Turbo Token</b>\n"
         f"📅 Дата запуска: <code>{datetime.now().strftime('%d.%m.%Y')}</code>\n"
-        f"🎮 Тип: <b>Case Clicker Game Bot</b>\n\n"
+        f"🎮 Тип: <b>Turbo Token Game Bot</b>\n\n"
         "💡 Для изменения настроек отредактируйте файл конфигурации."
     )
     
@@ -330,15 +330,15 @@ async def button_about(message: Message):
     """Информация о боте"""
     about_text = (
         "ℹ️ <b>О боте</b>\n\n"
-        "🎮 <b>Case Clicker - Hamster Kombat Style</b>\n\n"
+        "🎮 <b>Turbo Token</b>\n\n"
         "🎁 Открывай кейсы и получай предметы\n"
         "👆 Кликай и зарабатывай монеты\n"
         "⬆️ Улучшай свои способности\n"
         "🏆 Получай достижения\n"
         "📊 Прокачивай уровень\n\n"
-        "📱 Версия: 3.1\n"
+        "📱 Версия: 3.2\n"
         "💻 Разработан на aiogram 3.x\n"
-        "🎨 Дизайн в стиле Hamster Kombat\n\n"
+        "🎨 Современный дизайн\n\n"
         "🚀 Нажми кнопку <b>\"🎁 Открыть кейсы\"</b> чтобы начать играть!"
     )
     

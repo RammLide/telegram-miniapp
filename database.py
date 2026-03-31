@@ -721,11 +721,13 @@ async def get_leaderboard(limit: int = 100) -> List[Dict]:
     async with aiosqlite.connect(DATABASE_PATH) as db:
         async with db.execute("""
             SELECT u.user_id, u.username, u.first_name, 
-                   g.level, g.rating_score, b.balance
+                   COALESCE(g.level, 1) as level, 
+                   COALESCE(g.rating_score, 0) as rating_score, 
+                   COALESCE(b.balance, 0) as balance
             FROM users u
             LEFT JOIN user_game_data g ON u.user_id = g.user_id
             LEFT JOIN user_balance b ON u.user_id = b.user_id
-            ORDER BY g.rating_score DESC, b.balance DESC
+            ORDER BY rating_score DESC, balance DESC
             LIMIT ?
         """, (limit,)) as cursor:
             rows = await cursor.fetchall()
@@ -733,9 +735,9 @@ async def get_leaderboard(limit: int = 100) -> List[Dict]:
                 {
                     "user_id": row[0],
                     "username": row[1] or row[2] or "Игрок",
-                    "level": row[3] or 1,
-                    "rating_score": row[4] or 0,
-                    "balance": row[5] or 0
+                    "level": row[3],
+                    "rating_score": row[4],
+                    "balance": row[5]
                 }
                 for row in rows
             ]
