@@ -238,20 +238,26 @@ async def save_game_data_endpoint(request):
         user_id = data.get('user_id')
         
         if not user_id:
+            logger.error("save_game_data: user_id not provided")
             return web.json_response({'error': 'user_id required'}, status=400)
+        
+        logger.info(f"💾 Saving game data for user {user_id}")
         
         # Сохраняем игровые данные
         if 'game_data' in data:
             await update_user_game_data(user_id, data['game_data'])
+            logger.info(f"✅ Game data saved for user {user_id}")
         
         # Сохраняем баланс
         if 'balance' in data:
             await update_user_balance(user_id, data['balance'])
+            logger.info(f"✅ Balance saved for user {user_id}: {data['balance']}")
         
         # Сохраняем улучшения
         if 'upgrades' in data:
             for upgrade in data['upgrades']:
                 await update_user_upgrade(user_id, upgrade['upgrade_id'], upgrade['level'])
+            logger.info(f"✅ Upgrades saved for user {user_id}")
         
         # Сохраняем достижения
         if 'achievements' in data:
@@ -262,11 +268,13 @@ async def save_game_data_endpoint(request):
                     achievement['progress'],
                     achievement['unlocked']
                 )
+            logger.info(f"✅ Achievements saved for user {user_id}")
         
+        logger.info(f"✅ All data saved successfully for user {user_id}")
         return web.json_response({'success': True})
     
     except Exception as e:
-        logger.error(f"Error in save_game_data: {e}")
+        logger.error(f"❌ Error in save_game_data for user {user_id}: {e}")
         return web.json_response({'error': str(e)}, status=500)
 
 
