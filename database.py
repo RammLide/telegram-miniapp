@@ -150,6 +150,17 @@ async def add_user(user_id: int, username: Optional[str] = None, first_name: Opt
             UPDATE users SET last_activity = CURRENT_TIMESTAMP 
             WHERE user_id = ?
         """, (user_id,))
+        
+        # Создаем записи в user_game_data и user_balance если их нет
+        await db.execute("""
+            INSERT OR IGNORE INTO user_game_data (user_id)
+            VALUES (?)
+        """, (user_id,))
+        await db.execute("""
+            INSERT OR IGNORE INTO user_balance (user_id, balance)
+            VALUES (?, 1000)
+        """, (user_id,))
+        
         await db.commit()
         logger.info(f"Пользователь {user_id} добавлен в базу данных")
 

@@ -780,6 +780,7 @@ main {
     height: 150px;
     margin: 20px 0;
     overflow: hidden;
+    flex-shrink: 0;
 }
 
 .roulette-pointer {
@@ -792,6 +793,7 @@ main {
     background: var(--gold);
     z-index: 10;
     box-shadow: 0 0 20px var(--gold);
+    pointer-events: none;
 }
 
 .roulette-container {
@@ -808,6 +810,7 @@ main {
     top: 50%;
     transform: translate(-50%, -50%);
     transition: transform 3s cubic-bezier(0.25, 0.1, 0.25, 1);
+    will-change: transform;
 }
 
 .roulette-item {
@@ -926,9 +929,15 @@ main {
     max-width: 400px;
     max-height: 90vh;
     overflow-y: auto;
+    overflow-x: hidden;
     box-shadow: 0 20px 60px rgba(0,0,0,0.5);
     border: 2px solid rgba(255,215,0,0.3);
     animation: modalSlideIn 0.3s ease-out;
+}
+
+/* Отключаем прокрутку когда показывается рулетка */
+.modal-content:has(.case-roulette[style*="display: block"]) {
+    overflow: hidden;
 }
 
 @keyframes modalSlideIn {

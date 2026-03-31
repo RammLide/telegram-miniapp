@@ -88,6 +88,17 @@ async def cmd_start(message: Message):
     referrer_id = None
     logger.info(f"User {message.from_user.id} started bot with text: {message.text}, is_new_user: {is_new_user}")
     
+    # СНАЧАЛА добавляем пользователя в базу
+    await add_user(
+        user_id=message.from_user.id,
+        username=message.from_user.username,
+        first_name=message.from_user.first_name,
+        last_name=message.from_user.last_name
+    )
+    
+    # Генерируем реферальный код для пользователя если его нет
+    await get_referral_code(message.from_user.id)
+    
     if is_new_user and message.text and len(message.text.split()) > 1:
         args = message.text.split()[1]
         logger.info(f"Start command args: {args}")
@@ -128,16 +139,6 @@ async def cmd_start(message: Message):
                 logger.warning(f"Invalid referrer or self-referral: referrer_id={referrer_id}, user_id={message.from_user.id}")
     elif not is_new_user and message.text and len(message.text.split()) > 1:
         logger.info(f"User {message.from_user.id} is not new, referral not counted")
-    
-    await add_user(
-        user_id=message.from_user.id,
-        username=message.from_user.username,
-        first_name=message.from_user.first_name,
-        last_name=message.from_user.last_name
-    )
-    
-    # Генерируем реферальный код для пользователя если его нет
-    await get_referral_code(message.from_user.id)
     
     welcome_text = (
         f"👋 <b>Добро пожаловать, {message.from_user.first_name}!</b>\n\n"
