@@ -32,7 +32,10 @@ let openHistory = [];
 let upgrades = [];
 let achievements = [];
 let leaderboard = [];
+let marketListings = [];
+let myListings = [];
 let isLoading = false;
+let currentSellItem = null;
 
 // Улучшения
 const upgradesData = [
@@ -299,14 +302,24 @@ function setupEventListeners() {
     // Ежедневная награда
     document.getElementById('claimDaily').addEventListener('click', claimDailyReward);
     
-    // Модальное окно
+    // Модальное окно кейса
     document.getElementById('modalClose').addEventListener('click', closeModal);
     document.getElementById('modalOverlay').addEventListener('click', closeModal);
     document.getElementById('openCaseBtn').addEventListener('click', openCase);
     
+    // Модальное окно продажи
+    document.getElementById('sellModalClose').addEventListener('click', closeSellModal);
+    document.getElementById('sellModalOverlay').addEventListener('click', closeSellModal);
+    document.getElementById('confirmSellBtn').addEventListener('click', confirmSell);
+    
     // Приглашение друзей
     document.getElementById('inviteBtn').addEventListener('click', inviteFriend);
     document.getElementById('copyRefLink')?.addEventListener('click', copyReferralLink);
+    
+    // Вкладки торговой площадки
+    document.querySelectorAll('.market-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => switchMarketTab(btn.dataset.marketTab));
+    });
 }
 
 // Загрузка данных с сервера
@@ -459,6 +472,26 @@ function switchTab(tabName) {
         loadReferralData();
     } else if (tabName === 'rating') {
         loadLeaderboard();
+    } else if (tabName === 'inventory') {
+        loadInventory();
+    } else if (tabName === 'market') {
+        loadMarketplace();
+    }
+}
+
+function switchMarketTab(tabName) {
+    document.querySelectorAll('.market-tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.market-tab-content').forEach(content => content.classList.remove('active'));
+    
+    document.querySelector(`[data-market-tab="${tabName}"]`).classList.add('active');
+    document.getElementById(`market-${tabName}-tab`).classList.add('active');
+    
+    if (tabName === 'buy') {
+        loadMarketplace();
+    } else if (tabName === 'sell') {
+        loadSellInventory();
+    } else if (tabName === 'my') {
+        loadMyListings();
     }
 }
 
@@ -1277,3 +1310,308 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+// ==================== ИНВЕНТАРЬ ====================
+
+async function loadInventory() {
+    try {
+        const response = await fetch(`${API_URL}/api/inventory`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userData.userId })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            inventory = data.inventory || [];
+            displayInventory();
+        }
+    } catch (error) {
+        console.error('Error loading inventory:', error);
+    }
+}
+
+function displayInventory() {
+    const inventoryGrid = document.getElementById('inventoryGrid');
+    if (!inventoryGrid) return;
+    
+    inventoryGrid.innerHTML = '';
+    
+    if (inventory.length === 0) {
+        inventoryGrid.innerHTML = '<p style="text-align:center;opacity:0.5;padding:40px;">Инвентарь пуст</p>';
+        return;
+    }
+    
+    inventory.forEach(item => {
+        const card = document.createElement('div');
+        card.className = `inventory-item ${item.rarity}`;
+        card.innerHTML = `
+            <div class="item-image">${item.image}</div>
+            <div class="item-name">${item.name}</div>
+            <div class="item-value">💎 ${item.value}</div>
+            <div class="item-count">x${item.count}</div>
+        `;
+        inventoryGrid.appendChild(card);
+    });
+}
+
+// ==================== ТОРГОВАЯ ПЛОЩАДКА ====================
+
+async function loadMarketplace() {
+    try {
+        const response = await fetch(`${API_URL}/api/marketplace/listings`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ limit: 50 })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            marketListings = data.listings || [];
+            displayMarketplace();
+        }
+    } catch (error) {
+        console.error('Error loading marketplace:', error);
+    }
+}
+
+function displayMarketplace() {
+    const marketList = document.getElementById('marketList');
+    if (!marketList) return;
+    
+    marketList.innerHTML = '';
+    
+    if (marketListings.length === 0) {
+        marketList.innerHTML = '<p style="text-align:center;opacity:0.5;padding:40px;">Нет товаров на продажу</p>';
+        return;
+    }
+    
+    marketListings.forEach(listing => {
+        const item = document.createElement('div');
+        item.className = `market-item ${listing.item_rarity}`;
+        item.innerHTML = `
+            <div class="market-item-image">${listing.item_image}</div>
+            <div class="market-item-info">
+                <div class="market-item-name">${listing.item_name}</div>
+                <div class="market-item-seller">Продавец: ${listing.seller_name}</div>
+                <div class="market-item-value">Ценность: 💎 ${listing.item_value}</div>
+            </div>
+            <div class="market-item-actions">
+                <div class="market-item-price">💰 ${listing.price}</div>
+                <button class="btn-buy-item" data-listing-id="${listing.id}" ${listing.seller_id === userData.userId ? 'disabled' : ''}>
+                    ${listing.seller_id === userData.userId ? 'Ваш товар' : 'Купить'}
+                </button>
+            </div>
+        `;
+        
+        const buyBtn = item.querySelector('.btn-buy-item');
+        if (listing.seller_id !== userData.userId) {
+            buyBtn.addEventListener('click', () => buyMarketItem(listing.id));
+        }
+        
+        marketList.appendChild(item);
+    });
+}
+
+async function buyMarketItem(listingId) {
+    try {
+        const response = await fetch(`${API_URL}/api/marketplace/buy`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userData.userId, listing_id: listingId })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            userData.balance = data.balance;
+            updateUI();
+            showNotification('✅ Предмет куплен!');
+            tg.HapticFeedback.notificationOccurred('success');
+            loadMarketplace();
+            loadInventory();
+        } else {
+            const error = await response.json();
+            showNotification('❌ ' + (error.error || 'Ошибка покупки'));
+        }
+    } catch (error) {
+        console.error('Error buying item:', error);
+        showNotification('❌ Ошибка покупки');
+    }
+}
+
+async function loadSellInventory() {
+    const sellInventoryGrid = document.getElementById('sellInventoryGrid');
+    if (!sellInventoryGrid) return;
+    
+    sellInventoryGrid.innerHTML = '';
+    
+    if (inventory.length === 0) {
+        sellInventoryGrid.innerHTML = '<p style="text-align:center;opacity:0.5;padding:40px;">Инвентарь пуст</p>';
+        return;
+    }
+    
+    inventory.forEach(item => {
+        const card = document.createElement('div');
+        card.className = `inventory-item ${item.rarity} clickable`;
+        card.innerHTML = `
+            <div class="item-image">${item.image}</div>
+            <div class="item-name">${item.name}</div>
+            <div class="item-value">💎 ${item.value}</div>
+            <div class="item-count">x${item.count}</div>
+        `;
+        card.addEventListener('click', () => openSellModal(item));
+        sellInventoryGrid.appendChild(card);
+    });
+}
+
+function openSellModal(item) {
+    currentSellItem = item;
+    
+    const sellItemPreview = document.getElementById('sellItemPreview');
+    sellItemPreview.innerHTML = `
+        <div class="sell-item-card ${item.rarity}">
+            <div class="sell-item-image">${item.image}</div>
+            <div class="sell-item-name">${item.name}</div>
+            <div class="sell-item-value">Ценность: 💎 ${item.value}</div>
+        </div>
+    `;
+    
+    document.getElementById('sellPrice').value = item.value;
+    document.getElementById('sellModal').classList.add('active');
+}
+
+function closeSellModal() {
+    document.getElementById('sellModal').classList.remove('active');
+    currentSellItem = null;
+}
+
+async function confirmSell() {
+    if (!currentSellItem) return;
+    
+    const price = parseInt(document.getElementById('sellPrice').value);
+    if (!price || price < 1) {
+        showNotification('❌ Укажите корректную цену');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_URL}/api/marketplace/create`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                user_id: userData.userId,
+                item_name: currentSellItem.name,
+                item_rarity: currentSellItem.rarity,
+                item_value: currentSellItem.value,
+                item_image: currentSellItem.image,
+                price: price
+            })
+        });
+        
+        if (response.ok) {
+            showNotification('✅ Товар выставлен на продажу!');
+            tg.HapticFeedback.notificationOccurred('success');
+            closeSellModal();
+            loadInventory();
+            loadSellInventory();
+            switchMarketTab('my');
+        } else {
+            const error = await response.json();
+            showNotification('❌ ' + (error.error || 'Ошибка'));
+        }
+    } catch (error) {
+        console.error('Error creating listing:', error);
+        showNotification('❌ Ошибка создания объявления');
+    }
+}
+
+async function loadMyListings() {
+    try {
+        const response = await fetch(`${API_URL}/api/marketplace/my_listings`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userData.userId })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            myListings = data.listings || [];
+            displayMyListings();
+        }
+    } catch (error) {
+        console.error('Error loading my listings:', error);
+    }
+}
+
+function displayMyListings() {
+    const myListingsList = document.getElementById('myListingsList');
+    if (!myListingsList) return;
+    
+    myListingsList.innerHTML = '';
+    
+    if (myListings.length === 0) {
+        myListingsList.innerHTML = '<p style="text-align:center;opacity:0.5;padding:40px;">У вас нет объявлений</p>';
+        return;
+    }
+    
+    myListings.forEach(listing => {
+        const item = document.createElement('div');
+        item.className = `market-item ${listing.item_rarity}`;
+        
+        let statusText = '';
+        let statusClass = '';
+        if (listing.status === 'active') {
+            statusText = 'Активно';
+            statusClass = 'status-active';
+        } else if (listing.status === 'sold') {
+            statusText = 'Продано';
+            statusClass = 'status-sold';
+        } else if (listing.status === 'cancelled') {
+            statusText = 'Отменено';
+            statusClass = 'status-cancelled';
+        }
+        
+        item.innerHTML = `
+            <div class="market-item-image">${listing.item_image}</div>
+            <div class="market-item-info">
+                <div class="market-item-name">${listing.item_name}</div>
+                <div class="market-item-status ${statusClass}">${statusText}</div>
+                <div class="market-item-value">Ценность: 💎 ${listing.item_value}</div>
+            </div>
+            <div class="market-item-actions">
+                <div class="market-item-price">💰 ${listing.price}</div>
+                ${listing.status === 'active' ? `<button class="btn-cancel-listing" data-listing-id="${listing.id}">Отменить</button>` : ''}
+            </div>
+        `;
+        
+        if (listing.status === 'active') {
+            const cancelBtn = item.querySelector('.btn-cancel-listing');
+            cancelBtn.addEventListener('click', () => cancelListing(listing.id));
+        }
+        
+        myListingsList.appendChild(item);
+    });
+}
+
+async function cancelListing(listingId) {
+    try {
+        const response = await fetch(`${API_URL}/api/marketplace/cancel`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userData.userId, listing_id: listingId })
+        });
+        
+        if (response.ok) {
+            showNotification('✅ Объявление отменено');
+            tg.HapticFeedback.notificationOccurred('success');
+            loadMyListings();
+            loadInventory();
+        } else {
+            const error = await response.json();
+            showNotification('❌ ' + (error.error || 'Ошибка'));
+        }
+    } catch (error) {
+        console.error('Error cancelling listing:', error);
+        showNotification('❌ Ошибка отмены');
+    }
+}

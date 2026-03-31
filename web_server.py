@@ -27,7 +27,12 @@ from database import (
     get_referrals_list,
     get_leaderboard,
     get_user_rank,
-    update_rating_score
+    update_rating_score,
+    create_marketplace_listing,
+    get_marketplace_listings,
+    buy_marketplace_item,
+    cancel_marketplace_listing,
+    get_user_marketplace_listings
 )
 
 # Данные кейсов (те же, что в app.js)
@@ -206,6 +211,11 @@ def setup_routes(app):
     app.router.add_post('/api/user_info', get_user_info_endpoint)
     app.router.add_post('/api/referral_data', get_referral_data_endpoint)
     app.router.add_post('/api/leaderboard', get_leaderboard_endpoint)
+    app.router.add_post('/api/marketplace/listings', get_marketplace_listings_endpoint)
+    app.router.add_post('/api/marketplace/create', create_marketplace_listing_endpoint)
+    app.router.add_post('/api/marketplace/buy', buy_marketplace_item_endpoint)
+    app.router.add_post('/api/marketplace/cancel', cancel_marketplace_listing_endpoint)
+    app.router.add_post('/api/marketplace/my_listings', get_user_marketplace_listings_endpoint)
     
     # Статические файлы для Mini App
     app.router.add_static('/webapp/', path='webapp/', name='webapp')
@@ -360,4 +370,106 @@ async def get_leaderboard_endpoint(request):
     
     except Exception as e:
         logger.error(f"Error in get_leaderboard: {e}")
+        return web.json_response({'error': str(e)}, status=500)
+
+
+async def get_marketplace_listings_endpoint(request):
+    """Получение списка товаров на торговой площадке"""
+    try:
+        data = await request.json()
+        limit = data.get('limit', 50)
+        
+        listings = await get_marketplace_listings(limit)
+        return web.json_response({'listings': listings})
+    
+    except Exception as e:
+        logger.error(f"Error in get_marketplace_listings: {e}")
+        return web.json_response({'error': str(e)}, status=500)
+
+
+async def create_marketplace_listing_endpoint(request):
+    """Создание объявления на торговой площадке"""
+    try:
+        data = await request.json()
+        user_id = data.get('user_id')
+        item_name = data.get('item_name')
+        item_rarity = data.get('item_rarity')
+        item_value = data.get('item_value')
+        item_image = data.get('item_image')
+        price = data.get('price')
+        
+        if not all([user_id, item_name, item_rarity, item_value, item_image, price]):
+            return web.json_response({'error': 'Missing required fields'}, status=400)
+        
+        success = await create_marketplace_listing(user_id, item_name, item_rarity, item_value, item_image, price)
+        
+        if success:
+            return web.json_response({'success': True})
+        else:
+            return web.json_response({'error': 'Item not found in inventory'}, status=400)
+    
+    except Exception as e:
+        logger.error(f"Error in create_marketplace_listing: {e}")
+        return web.json_response({'error': str(e)}, status=500)
+
+
+async def buy_marketplace_item_endpoint(request):
+    """Покупка предмета с торговой площадки"""
+    try:
+        data = await request.json()
+        user_id = data.get('user_id')
+        listing_id = data.get('listing_id')
+        
+        if not user_id or not listing_id:
+            return web.json_response({'error': 'user_id and listing_id required'}, status=400)
+        
+        success = await buy_marketplace_item(user_id, listing_id)
+        
+        if success:
+            new_balance = await get_user_balance(user_id)
+            return web.json_response({'success': True, 'balance': new_balance})
+        else:
+            return web.json_response({'error': 'Purchase failed'}, status=400)
+    
+    except Exception as e:
+        logger.error(f"Error in buy_marketplace_item: {e}")
+        return web.json_response({'error': str(e)}, status=500)
+
+
+async def cancel_marketplace_listing_endpoint(request):
+    """Отмена объявления на торговой площадке"""
+    try:
+        data = await request.json()
+        user_id = data.get('user_id')
+        listing_id = data.get('listing_id')
+        
+        if not user_id or not listing_id:
+            return web.json_response({'error': 'user_id and listing_id required'}, status=400)
+        
+        success = await cancel_marketplace_listing(user_id, listing_id)
+        
+        if success:
+            return web.json_response({'success': True})
+        else:
+            return web.json_response({'error': 'Cancellation failed'}, status=400)
+    
+    except Exception as e:
+        logger.error(f"Error in cancel_marketplace_listing: {e}")
+        return web.json_response({'error': str(e)}, status=500)
+
+
+async def get_user_marketplace_listings_endpoint(request):
+    """Получение объявлений пользователя"""
+    try:
+        data = await request.json()
+        user_id = data.get('user_id')
+        
+        if not user_id:
+            return web.json_response({'error': 'user_id required'}, status=400)
+        
+        listings = await get_user_marketplace_listings(user_id)
+        return web.json_response({'listings': listings})
+    
+    except Exception as e:
+        logger.error(f"Error in get_user_marketplace_listings: {e}")
         return web.json_response({'error': str(e)}, status=500)

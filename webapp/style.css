@@ -1211,3 +1211,287 @@ main {
     background: rgba(255,215,0,0.5);
     border-radius: 3px;
 }
+
+/* ==================== ИНВЕНТАРЬ ==================== */
+.inventory-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    padding: 15px;
+}
+
+.inventory-item {
+    background: rgba(255,255,255,0.05);
+    border-radius: 12px;
+    padding: 15px;
+    text-align: center;
+    border: 2px solid transparent;
+    transition: all 0.3s;
+    position: relative;
+}
+
+.inventory-item.clickable {
+    cursor: pointer;
+}
+
+.inventory-item.clickable:active {
+    transform: scale(0.95);
+}
+
+.inventory-item.common { border-color: #b0b0b0; }
+.inventory-item.rare { border-color: #4169e1; }
+.inventory-item.epic { border-color: #9370db; }
+.inventory-item.legendary { border-color: var(--gold); }
+
+.item-image {
+    font-size: 60px;
+    margin-bottom: 10px;
+}
+
+.item-name {
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.item-value {
+    font-size: 12px;
+    color: var(--gold);
+    margin-bottom: 5px;
+}
+
+.item-count {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0,0,0,0.7);
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+/* ==================== ТОРГОВАЯ ПЛОЩАДКА ==================== */
+.market-tabs {
+    display: flex;
+    gap: 10px;
+    padding: 15px;
+    background: rgba(255,255,255,0.05);
+}
+
+.market-tab-btn {
+    flex: 1;
+    padding: 10px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.market-tab-btn.active {
+    background: linear-gradient(135deg, var(--gold), #ffed4e);
+    color: #333;
+    border-color: var(--gold);
+}
+
+.market-tab-btn:active {
+    transform: scale(0.95);
+}
+
+.market-content {
+    padding: 15px;
+}
+
+.market-tab-content {
+    display: none;
+}
+
+.market-tab-content.active {
+    display: block;
+}
+
+.market-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.market-item {
+    background: rgba(255,255,255,0.05);
+    border-radius: 12px;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: 2px solid transparent;
+}
+
+.market-item.common { border-color: #b0b0b0; }
+.market-item.rare { border-color: #4169e1; }
+.market-item.epic { border-color: #9370db; }
+.market-item.legendary { border-color: var(--gold); }
+
+.market-item-image {
+    font-size: 50px;
+    min-width: 60px;
+    text-align: center;
+}
+
+.market-item-info {
+    flex: 1;
+}
+
+.market-item-name {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.market-item-seller,
+.market-item-value {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 2px;
+}
+
+.market-item-status {
+    font-size: 12px;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.market-item-status.status-active {
+    color: #4ade80;
+}
+
+.market-item-status.status-sold {
+    color: var(--text-secondary);
+}
+
+.market-item-status.status-cancelled {
+    color: #ff6b6b;
+}
+
+.market-item-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+.market-item-price {
+    font-size: 18px;
+    font-weight: bold;
+    color: var(--gold);
+}
+
+.btn-buy-item,
+.btn-cancel-listing {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, var(--gold), #ffed4e);
+    color: #333;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-buy-item:active,
+.btn-cancel-listing:active {
+    transform: scale(0.95);
+}
+
+.btn-buy-item:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-cancel-listing {
+    background: linear-gradient(135deg, #ff6b6b, #ff8787);
+}
+
+/* ==================== МОДАЛЬНОЕ ОКНО ПРОДАЖИ ==================== */
+#sellModal .modal-content {
+    max-width: 400px;
+}
+
+.sell-item-preview {
+    margin-bottom: 20px;
+}
+
+.sell-item-card {
+    background: rgba(255,255,255,0.05);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    border: 2px solid transparent;
+}
+
+.sell-item-card.common { border-color: #b0b0b0; }
+.sell-item-card.rare { border-color: #4169e1; }
+.sell-item-card.epic { border-color: #9370db; }
+.sell-item-card.legendary { border-color: var(--gold); }
+
+.sell-item-image {
+    font-size: 80px;
+    margin-bottom: 10px;
+}
+
+.sell-item-name {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.sell-item-value {
+    font-size: 14px;
+    color: var(--gold);
+}
+
+.sell-price-input {
+    margin-bottom: 20px;
+}
+
+.sell-price-input label {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: var(--text-secondary);
+}
+
+.sell-price-input input {
+    width: 100%;
+    padding: 12px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 16px;
+}
+
+.sell-price-input input:focus {
+    outline: none;
+    border-color: var(--gold);
+}
+
+.btn-confirm-sell {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, var(--gold), #ffed4e);
+    color: #333;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-confirm-sell:active {
+    transform: scale(0.98);
+}

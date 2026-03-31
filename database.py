@@ -118,6 +118,23 @@ async def init_db():
                 FOREIGN KEY (referred_id) REFERENCES users(user_id)
             )
         """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS marketplace (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                seller_id INTEGER,
+                item_name TEXT,
+                item_rarity TEXT,
+                item_value INTEGER,
+                item_image TEXT,
+                price INTEGER,
+                status TEXT DEFAULT 'active',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                sold_at TIMESTAMP,
+                buyer_id INTEGER,
+                FOREIGN KEY (seller_id) REFERENCES users(user_id),
+                FOREIGN KEY (buyer_id) REFERENCES users(user_id)
+            )
+        """)
         await db.commit()
         logger.info("База данных инициализирована")
 
@@ -719,6 +736,17 @@ async def update_rating_score(user_id: int, score: int):
 async def get_leaderboard(limit: int = 100) -> List[Dict]:
     """Получение топ игроков по рейтингу"""
     async with aiosqlite.connect(DATABASE_PATH) as db:
+        # Сначала создаем записи для всех пользователей, у которых их нет
+        await db.execute("""
+            INSERT OR IGNORE INTO user_game_data (user_id)
+            SELECT user_id FROM users WHERE user_id NOT IN (SELECT user_id FROM user_game_data)
+        """)
+        await db.execute("""
+            INSERT OR IGNORE INTO user_balance (user_id, balance)
+            SELECT user_id, 1000 FROM users WHERE user_id NOT IN (SELECT user_id FROM user_balance)
+        """)
+        await db.commit()
+        
         async with db.execute("""
             SELECT u.user_id, u.username, u.first_name, 
                    COALESCE(g.level, 1) as level, 
@@ -727,7 +755,7 @@ async def get_leaderboard(limit: int = 100) -> List[Dict]:
             FROM users u
             LEFT JOIN user_game_data g ON u.user_id = g.user_id
             LEFT JOIN user_balance b ON u.user_id = b.user_id
-            ORDER BY rating_score DESC, balance DESC
+            ORDER BY rating_score DESC, balance DESC, level DESC
             LIMIT ?
         """, (limit,)) as cursor:
             rows = await cursor.fetchall()
@@ -743,20 +771,196 @@ async def get_leaderboard(limit: int = 100) -> List[Dict]:
             ]
 
 
+# ==================== ФУНКЦИИ ДЛЯ ТОРГОВОЙ ПЛОЩАДКИ ====================
+
+async def create_marketplace_listing(seller_id: int, item_name: str, item_rarity: str, item_value: int, item_image: str, price: int) -> bool:
+    """Создание объявления на торговой площадке"""
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        # Проверяем, есть ли предмет в инвентаре
+        async with db.execute("""
+            SELECT id, count FROM user_inventory 
+            WHERE user_id = ? AND item_name = ?
+        """, (seller_id, item_name)) as cursor:
+            result = await cursor.fetchone()
+            if not result or result[1] < 1:
+                return False
+        
+        # Уменьшаем количество предмета в инвентаре
+        if result[1] > 1:
+            await db.execute("""
+                UPDATE user_inventory SET count = count - 1 
+                WHERE id = ?
+            """, (result[0],))
+        else:
+            await db.execute("""
+                DELETE FROM user_inventory WHERE id = ?
+            """, (result[0],))
+        
+        # Создаем объявление
+        await db.execute("""
+            INSERT INTO marketplace (seller_id, item_name, item_rarity, item_value, item_image, price)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (seller_id, item_name, item_rarity, item_value, item_image, price))
+        
+        await db.commit()
+        return True
+
+
+async def get_marketplace_listings(limit: int = 50) -> List[Dict]:
+    """Получение активных объявлений на торговой площадке"""
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        async with db.execute("""
+            SELECT m.id, m.seller_id, u.username, u.first_name, 
+                   m.item_name, m.item_rarity, m.item_value, m.item_image, 
+                   m.price, m.created_at
+            FROM marketplace m
+            LEFT JOIN users u ON m.seller_id = u.user_id
+            WHERE m.status = 'active'
+            ORDER BY m.created_at DESC
+            LIMIT ?
+        """, (limit,)) as cursor:
+            rows = await cursor.fetchall()
+            return [
+                {
+                    "id": row[0],
+                    "seller_id": row[1],
+                    "seller_name": row[2] or row[3] or "Игрок",
+                    "item_name": row[4],
+                    "item_rarity": row[5],
+                    "item_value": row[6],
+                    "item_image": row[7],
+                    "price": row[8],
+                    "created_at": row[9]
+                }
+                for row in rows
+            ]
+
+
+async def buy_marketplace_item(buyer_id: int, listing_id: int) -> bool:
+    """Покупка предмета с торговой площадки"""
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        # Получаем информацию об объявлении
+        async with db.execute("""
+            SELECT seller_id, item_name, item_rarity, item_value, item_image, price, status
+            FROM marketplace WHERE id = ?
+        """, (listing_id,)) as cursor:
+            result = await cursor.fetchone()
+            if not result or result[6] != 'active':
+                return False
+            
+            seller_id, item_name, item_rarity, item_value, item_image, price, status = result
+        
+        # Проверяем, что покупатель не продавец
+        if buyer_id == seller_id:
+            return False
+        
+        # Проверяем баланс покупателя
+        buyer_balance = await get_user_balance(buyer_id)
+        if buyer_balance < price:
+            return False
+        
+        # Списываем деньги у покупателя
+        await subtract_balance(buyer_id, price)
+        
+        # Начисляем деньги продавцу
+        await add_balance(seller_id, price)
+        
+        # Добавляем предмет в инвентарь покупателя
+        await add_item_to_inventory(buyer_id, item_name, item_rarity, item_value, item_image)
+        
+        # Обновляем статус объявления
+        await db.execute("""
+            UPDATE marketplace 
+            SET status = 'sold', sold_at = CURRENT_TIMESTAMP, buyer_id = ?
+            WHERE id = ?
+        """, (buyer_id, listing_id))
+        
+        await db.commit()
+        return True
+
+
+async def cancel_marketplace_listing(seller_id: int, listing_id: int) -> bool:
+    """Отмена объявления на торговой площадке"""
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        # Получаем информацию об объявлении
+        async with db.execute("""
+            SELECT seller_id, item_name, item_rarity, item_value, item_image, status
+            FROM marketplace WHERE id = ?
+        """, (listing_id,)) as cursor:
+            result = await cursor.fetchone()
+            if not result or result[5] != 'active' or result[0] != seller_id:
+                return False
+            
+            item_name, item_rarity, item_value, item_image = result[1], result[2], result[3], result[4]
+        
+        # Возвращаем предмет в инвентарь
+        await add_item_to_inventory(seller_id, item_name, item_rarity, item_value, item_image)
+        
+        # Обновляем статус объявления
+        await db.execute("""
+            UPDATE marketplace SET status = 'cancelled' WHERE id = ?
+        """, (listing_id,))
+        
+        await db.commit()
+        return True
+
+
+async def get_user_marketplace_listings(user_id: int) -> List[Dict]:
+    """Получение объявлений пользователя"""
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        async with db.execute("""
+            SELECT id, item_name, item_rarity, item_value, item_image, price, status, created_at
+            FROM marketplace 
+            WHERE seller_id = ?
+            ORDER BY created_at DESC
+        """, (user_id,)) as cursor:
+            rows = await cursor.fetchall()
+            return [
+                {
+                    "id": row[0],
+                    "item_name": row[1],
+                    "item_rarity": row[2],
+                    "item_value": row[3],
+                    "item_image": row[4],
+                    "price": row[5],
+                    "status": row[6],
+                    "created_at": row[7]
+                }
+                for row in rows
+            ]
+
+
 async def get_user_rank(user_id: int) -> int:
     """Получение позиции пользователя в рейтинге"""
     async with aiosqlite.connect(DATABASE_PATH) as db:
-        # Сначала получаем рейтинг пользователя
+        # Создаем запись если её нет
+        await db.execute("""
+            INSERT OR IGNORE INTO user_game_data (user_id)
+            VALUES (?)
+        """, (user_id,))
+        await db.commit()
+        
+        # Получаем рейтинг пользователя
         async with db.execute("""
-            SELECT COALESCE(rating_score, 0) FROM user_game_data WHERE user_id = ?
+            SELECT COALESCE(g.rating_score, 0), COALESCE(b.balance, 0), COALESCE(g.level, 1)
+            FROM users u
+            LEFT JOIN user_game_data g ON u.user_id = g.user_id
+            LEFT JOIN user_balance b ON u.user_id = b.user_id
+            WHERE u.user_id = ?
         """, (user_id,)) as cursor:
             result = await cursor.fetchone()
-            user_score = result[0] if result else 0
+            if not result:
+                return 1
+            user_score, user_balance, user_level = result
         
-        # Теперь считаем, сколько пользователей имеют рейтинг выше
+        # Считаем, сколько пользователей имеют лучшие показатели
         async with db.execute("""
-            SELECT COUNT(*) FROM user_game_data
-            WHERE COALESCE(rating_score, 0) > ?
-        """, (user_score,)) as cursor:
+            SELECT COUNT(*) FROM users u
+            LEFT JOIN user_game_data g ON u.user_id = g.user_id
+            LEFT JOIN user_balance b ON u.user_id = b.user_id
+            WHERE (COALESCE(g.rating_score, 0) > ?) 
+               OR (COALESCE(g.rating_score, 0) = ? AND COALESCE(b.balance, 0) > ?)
+               OR (COALESCE(g.rating_score, 0) = ? AND COALESCE(b.balance, 0) = ? AND COALESCE(g.level, 1) > ?)
+        """, (user_score, user_score, user_balance, user_score, user_balance, user_level)) as cursor:
             result = await cursor.fetchone()
             return (result[0] + 1) if result else 1
