@@ -79,7 +79,8 @@ header {
     color: var(--text-secondary);
 }
 
-.settings-btn {
+.settings-btn,
+.achievements-btn {
     width: 40px;
     height: 40px;
     background: rgba(255,255,255,0.1);
@@ -92,7 +93,8 @@ header {
     transition: all 0.3s;
 }
 
-.settings-btn:active {
+.settings-btn:active,
+.achievements-btn:active {
     transform: scale(0.9);
 }
 
@@ -928,16 +930,34 @@ main {
     width: 90%;
     max-width: 400px;
     max-height: 90vh;
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
     box-shadow: 0 20px 60px rgba(0,0,0,0.5);
     border: 2px solid rgba(255,215,0,0.3);
     animation: modalSlideIn 0.3s ease-out;
 }
 
-/* Отключаем прокрутку когда показывается рулетка */
-.modal-content:has(.case-roulette[style*="display: block"]) {
-    overflow: hidden;
+.modal-content > h2 {
+    flex-shrink: 0;
+    margin-bottom: 20px;
+}
+
+.modal-content > .case-preview,
+.modal-content > .case-roulette,
+.modal-content > .case-result,
+.modal-content > .case-items-list {
+    flex-shrink: 0;
+}
+
+.modal-content > .btn-open-case {
+    flex-shrink: 0;
+    margin-top: auto;
+}
+
+/* Для модального окна достижений разрешаем прокрутку */
+.achievements-modal-content {
+    overflow-y: auto;
 }
 
 @keyframes modalSlideIn {

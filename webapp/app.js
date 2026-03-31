@@ -307,6 +307,11 @@ function setupEventListeners() {
     document.getElementById('modalOverlay').addEventListener('click', closeModal);
     document.getElementById('openCaseBtn').addEventListener('click', openCase);
     
+    // Модальное окно достижений
+    document.getElementById('achievementsBtn').addEventListener('click', openAchievementsModal);
+    document.getElementById('achievementsModalClose').addEventListener('click', closeAchievementsModal);
+    document.getElementById('achievementsModalOverlay').addEventListener('click', closeAchievementsModal);
+    
     // Модальное окно продажи
     document.getElementById('sellModalClose').addEventListener('click', closeSellModal);
     document.getElementById('sellModalOverlay').addEventListener('click', closeSellModal);
@@ -1028,6 +1033,15 @@ function updateAchievement(id, value) {
         showNotification(`🏆 ${achievement.name}!`);
         tg.HapticFeedback.notificationOccurred('success');
     }
+}
+
+function openAchievementsModal() {
+    loadAchievements();
+    document.getElementById('achievementsModal').classList.add('active');
+}
+
+function closeAchievementsModal() {
+    document.getElementById('achievementsModal').classList.remove('active');
 }
 
 // Приглашение друзей
