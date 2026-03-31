@@ -43,21 +43,8 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 if not BOT_TOKEN:
     raise ValueError("BOT_TOKEN не найден в .env файле")
 
-# Настройка прокси (если используется)
-from aiohttp import ClientSession
-from aiohttp_socks import ProxyConnector
-
-# Укажите ваш прокси, если он есть
-PROXY_URL = "socks5://127.0.0.1:10809"  # Измените на ваш прокси
-
-try:
-    connector = ProxyConnector.from_url(PROXY_URL)
-    session = ClientSession(connector=connector)
-    bot = Bot(token=BOT_TOKEN, session=session)
-    logger.info(f"Бот инициализирован с прокси: {PROXY_URL}")
-except Exception as e:
-    logger.warning(f"Не удалось подключиться через прокси: {e}. Пробуем без прокси...")
-    bot = Bot(token=BOT_TOKEN)
+# Инициализация бота (без прокси для Render)
+bot = Bot(token=BOT_TOKEN)
 
 storage = MemoryStorage()
 dp = Dispatcher(storage=storage)
