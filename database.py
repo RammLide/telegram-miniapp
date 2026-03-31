@@ -570,7 +570,8 @@ async def update_user_achievement(user_id: int, achievement_id: str, progress: i
 async def generate_referral_code(user_id: int) -> str:
     """Генерация уникального реферального кода"""
     import hashlib
-    code = hashlib.md5(f"{user_id}{datetime.now().timestamp()}".encode()).hexdigest()[:8]
+    # Используем только user_id для стабильного кода
+    code = hashlib.md5(f"ref_{user_id}_code".encode()).hexdigest()[:8]
     async with aiosqlite.connect(DATABASE_PATH) as db:
         await db.execute("""
             UPDATE users SET referral_code = ? WHERE user_id = ?
