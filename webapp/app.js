@@ -140,19 +140,49 @@ async function initApp() {
     }, 5000);
     
     // Сохранение при закрытии/перезагрузке страницы
-    window.addEventListener('beforeunload', () => {
-        saveGameData();
+    window.addEventListener('beforeunload', (e) => {
+        // Синхронное сохранение в localStorage
         saveToLocalStorage();
+        
+        // Пытаемся сохранить на сервер с помощью sendBeacon (не блокирует закрытие)
+        const data = JSON.stringify({
+            user_id: userData.userId,
+            game_data: {
+                level: userData.level,
+                exp: userData.exp,
+                exp_to_next_level: userData.expToNextLevel,
+                total_clicks: userData.totalClicks,
+                coins_per_click: userData.coinsPerClick,
+                energy: Math.floor(userData.energy),
+                max_energy: userData.maxEnergy,
+                last_energy_update: new Date().toISOString()
+            },
+            balance: userData.balance,
+            upgrades: upgrades.map(u => ({ upgrade_id: u.upgrade_id || u.id, level: u.level })),
+            achievements: achievements.map(a => ({ id: a.achievement_id || a.id, progress: a.progress, unlocked: a.unlocked }))
+        });
+        
+        // sendBeacon работает даже при закрытии страницы
+        navigator.sendBeacon(`${API_URL}/api/save_game_data`, new Blob([data], { type: 'application/json' }));
     });
     
     // Сохранение при потере фокуса (когда пользователь сворачивает приложение)
     window.addEventListener('blur', () => {
+        saveToLocalStorage();
         saveGameData();
     });
     
     // Сохранение при возврате фокуса
-    window.addEventListener('focus', () => {
-        loadGameData();
+    window.addEventListener('focus', async () => {
+        // Загружаем актуальные данные с сервера
+        await loadGameData();
+        updateUI();
+    });
+    
+    // Telegram Web App событие закрытия
+    tg.onEvent('viewportChanged', () => {
+        saveToLocalStorage();
+        saveGameData();
     });
     
     hideLoading();

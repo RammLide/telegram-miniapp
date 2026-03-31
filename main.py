@@ -771,9 +771,12 @@ async def start_web_server():
     
     runner = web.AppRunner(app)
     await runner.setup()
-    site = web.TCPSite(runner, '0.0.0.0', 8080)
+    
+    # Получаем порт из переменной окружения (для Render) или используем 8080
+    port = int(os.getenv('PORT', 8080))
+    site = web.TCPSite(runner, '0.0.0.0', port)
     await site.start()
-    logger.info("🌐 Веб-сервер запущен на порту 8080")
+    logger.info(f"🌐 Веб-сервер запущен на порту {port}")
 
 
 async def main():
