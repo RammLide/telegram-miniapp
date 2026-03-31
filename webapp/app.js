@@ -132,8 +132,28 @@ async function initApp() {
     // Запускаем регенерацию энергии
     startEnergyRegen();
     
-    // Автосохранение каждые 10 секунд
-    setInterval(() => saveGameData(), 10000);
+    // Автосохранение каждые 5 секунд
+    setInterval(() => {
+        if (!isLoading) {
+            saveGameData();
+        }
+    }, 5000);
+    
+    // Сохранение при закрытии/перезагрузке страницы
+    window.addEventListener('beforeunload', () => {
+        saveGameData();
+        saveToLocalStorage();
+    });
+    
+    // Сохранение при потере фокуса (когда пользователь сворачивает приложение)
+    window.addEventListener('blur', () => {
+        saveGameData();
+    });
+    
+    // Сохранение при возврате фокуса
+    window.addEventListener('focus', () => {
+        loadGameData();
+    });
     
     hideLoading();
 }
@@ -257,13 +277,16 @@ async function saveGameData() {
         });
         
         if (response.ok) {
-            console.log('Game data saved successfully');
+            console.log('✅ Game data saved successfully');
+            // Также сохраняем в localStorage как резервную копию
+            saveToLocalStorage();
+        } else {
+            console.error('❌ Failed to save game data');
+            // Сохраняем локально если сервер вернул ошибку
+            saveToLocalStorage();
         }
-        
-        // Также сохраняем в localStorage как резервную копию
-        saveToLocalStorage();
     } catch (error) {
-        console.error('Error saving game data:', error);
+        console.error('❌ Error saving game data:', error);
         // Сохраняем локально если сервер недоступен
         saveToLocalStorage();
     }
@@ -310,6 +333,9 @@ function handleTap(e) {
     
     // Обновляем UI
     updateUI();
+    
+    // Сохраняем данные сразу после важного действия
+    saveGameData();
     
     // Вибрация
     tg.HapticFeedback.impactOccurred('light');
@@ -412,6 +438,7 @@ function claimDailyReward() {
     showNotification(`+${bonus} 💰 получено!`);
     tg.HapticFeedback.notificationOccurred('success');
     
+    // Сохраняем данные сразу после получения награды
     saveGameData();
 }
 
@@ -488,6 +515,8 @@ function openCase() {
         updateAchievement('rich', userData.balance);
         
         updateUI();
+        
+        // Сохраняем данные сразу после открытия кейса
         saveGameData();
         
         openBtn.disabled = false;
@@ -587,6 +616,8 @@ function buyUpgrade(upgradeId) {
     
     updateUI();
     loadUpgrades();
+    
+    // Сохраняем данные сразу после покупки улучшения
     saveGameData();
     
     showNotification(`${upgrade.name} улучшен!`);
