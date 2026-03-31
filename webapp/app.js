@@ -336,9 +336,15 @@ async function loadGameData() {
                 userData.ratingScore = data.game_data.rating_score;
             }
             
+            // Получаем реферальный код
+            if (data.referral_code) {
+                userData.referralCode = data.referral_code;
+            }
+            
             console.log('✅ Game data loaded successfully from server');
             console.log('💰 Balance:', userData.balance);
             console.log('📊 Level:', userData.level);
+            console.log('🔗 Referral code:', userData.referralCode);
         } else {
             console.warn('⚠️ Server returned error, loading from localStorage');
             loadFromLocalStorage();

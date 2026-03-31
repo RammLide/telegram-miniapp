@@ -225,13 +225,15 @@ async def get_game_data_endpoint(request):
         inventory = await get_user_inventory(user_id)
         upgrades = await get_user_upgrades(user_id)
         achievements = await get_user_achievements_db(user_id)
+        referral_code = await get_referral_code(user_id)
         
         return web.json_response({
             'game_data': game_data,
             'balance': balance,
             'inventory': inventory,
             'upgrades': upgrades,
-            'achievements': achievements
+            'achievements': achievements,
+            'referral_code': referral_code
         })
     
     except Exception as e:
