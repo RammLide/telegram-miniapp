@@ -782,7 +782,6 @@ main {
     height: 150px;
     margin: 20px 0;
     overflow: hidden;
-    flex-shrink: 0;
 }
 
 .roulette-pointer {
@@ -799,7 +798,9 @@ main {
 }
 
 .roulette-container {
-    position: relative;
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
     overflow: hidden;
@@ -813,6 +814,37 @@ main {
     transform: translate(-50%, -50%);
     transition: transform 3s cubic-bezier(0.25, 0.1, 0.25, 1);
     will-change: transform;
+}
+
+.roulette-pointer {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 4px;
+    height: 120px;
+    background: var(--gold);
+    z-index: 10;
+    box-shadow: 0 0 20px var(--gold);
+    pointer-events: none;
+}
+
+.roulette-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.roulette-items {
+    display: flex;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    transition: transform 3s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 .roulette-item {
@@ -930,29 +962,19 @@ main {
     width: 90%;
     max-width: 400px;
     max-height: 90vh;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
     box-shadow: 0 20px 60px rgba(0,0,0,0.5);
     border: 2px solid rgba(255,215,0,0.3);
     animation: modalSlideIn 0.3s ease-out;
 }
 
 .modal-content > h2 {
-    flex-shrink: 0;
     margin-bottom: 20px;
 }
 
-.modal-content > .case-preview,
-.modal-content > .case-roulette,
-.modal-content > .case-result,
-.modal-content > .case-items-list {
-    flex-shrink: 0;
-}
-
-.modal-content > .btn-open-case {
-    flex-shrink: 0;
-    margin-top: auto;
+.modal-content > h2 {
+    margin-bottom: 20px;
 }
 
 /* Для модального окна достижений разрешаем прокрутку */
@@ -1146,12 +1168,12 @@ main {
     }
     
     .tap-circle {
-        width: 320px;
-        height: 320px;
+        width: 280px;
+        height: 280px;
     }
     
     .tap-emoji {
-        font-size: 240px;
+        font-size: 200px;
     }
     
     .cases-grid {
@@ -1165,12 +1187,27 @@ main {
     .bottom-nav {
         position: relative;
         border-radius: 0 0 20px 20px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        white-space: nowrap;
+    }
+    
+    .nav-btn {
+        display: inline-flex;
+        flex-direction: column;
+        min-width: 80px;
     }
     
     /* Улучшенная прокрутка для ПК */
     main {
         max-height: calc(100vh - 300px);
         overflow-y: auto;
+    }
+    
+    /* Увеличиваем модальное окно на ПК */
+    .modal-content {
+        max-width: 500px;
+        padding: 40px;
     }
 }
 

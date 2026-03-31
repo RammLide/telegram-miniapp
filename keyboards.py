@@ -29,7 +29,8 @@ def get_admin_keyboard() -> ReplyKeyboardMarkup:
         keyboard=[
             [KeyboardButton(text="📊 Статистика"), KeyboardButton(text="📢 Рассылка")],
             [KeyboardButton(text="👥 Список пользователей"), KeyboardButton(text="👨‍💼 Управление админами")],
-            [KeyboardButton(text="⚙️ Настройки"), KeyboardButton(text="👤 Режим пользователя")]
+            [KeyboardButton(text="💬 Изменить приветствие"), KeyboardButton(text="⚙️ Настройки")],
+            [KeyboardButton(text="👤 Режим пользователя")]
         ],
         resize_keyboard=True,
         input_field_placeholder="Панель администратора"

@@ -135,6 +135,13 @@ async def init_db():
                 FOREIGN KEY (buyer_id) REFERENCES users(user_id)
             )
         """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS bot_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
         await db.commit()
         logger.info("База данных инициализирована")
 
@@ -782,6 +789,29 @@ async def get_leaderboard(limit: int = 100) -> List[Dict]:
             ]
 
 
+# ==================== ФУНКЦИИ ДЛЯ НАСТРОЕК БОТА ====================
+
+async def get_bot_setting(key: str, default: str = "") -> str:
+    """Получение настройки бота"""
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        async with db.execute("""
+            SELECT value FROM bot_settings WHERE key = ?
+        """, (key,)) as cursor:
+            result = await cursor.fetchone()
+            return result[0] if result else default
+
+
+async def set_bot_setting(key: str, value: str):
+    """Установка настройки бота"""
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        await db.execute("""
+            INSERT INTO bot_settings (key, value, updated_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(key) DO UPDATE SET value = ?, updated_at = CURRENT_TIMESTAMP
+        """, (key, value, value))
+        await db.commit()
+
+
 # ==================== ФУНКЦИИ ДЛЯ ТОРГОВОЙ ПЛОЩАДКИ ====================
 
 async def create_marketplace_listing(seller_id: int, item_name: str, item_rarity: str, item_value: int, item_image: str, price: int) -> bool:
@@ -975,3 +1005,29 @@ async def get_user_rank(user_id: int) -> int:
         """, (user_score, user_score, user_balance, user_score, user_balance, user_level)) as cursor:
             result = await cursor.fetchone()
             return (result[0] + 1) if result else 1
+
+
+# ==================== ФУНКЦИИ ДЛЯ НАСТРОЕК БОТА ====================
+
+async def get_bot_setting(key: str, default: str = "") -> str:
+    """Получение настройки бота"""
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        async with db.execute("""
+            SELECT value FROM bot_settings WHERE key = ?
+        """, (key,)) as cursor:
+            result = await cursor.fetchone()
+            return result[0] if result else default
+
+
+async def set_bot_setting(key: str, value: str):
+    """Установка настройки бота"""
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        await db.execute("""
+            INSERT INTO bot_settings (key, value, updated_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(key) DO UPDATE SET 
+                value = excluded.value,
+                updated_at = CURRENT_TIMESTAMP
+        """, (key, value))
+        await db.commit()
+        logger.info(f"Bot setting '{key}' updated")

@@ -15,7 +15,8 @@ from database import (
     add_admin, remove_admin, is_admin as check_is_admin, get_all_admins, get_admins_count,
     log_event, get_users_today, get_users_week, get_users_month, 
     get_active_users_today, get_user_info, get_broadcast_stats,
-    get_referral_code, get_user_by_referral_code, add_referral, claim_referral_bonus
+    get_referral_code, get_user_by_referral_code, add_referral, claim_referral_bonus,
+    get_bot_setting, set_bot_setting
 )
 from keyboards import (
     get_main_keyboard, 
@@ -61,6 +62,8 @@ class BroadcastStates(StatesGroup):
 
 class AdminStates(StatesGroup):
     waiting_for_admin_id = State()
+    waiting_for_welcome_message = State()
+    waiting_for_welcome_message = State()
 
 
 async def is_admin(user_id: int) -> bool:
@@ -99,48 +102,8 @@ async def cmd_start(message: Message):
     # Генерируем реферальный код для пользователя если его нет
     await get_referral_code(message.from_user.id)
     
-    if is_new_user and message.text and len(message.text.split()) > 1:
-        args = message.text.split()[1]
-        logger.info(f"Start command args: {args}")
-        
-        if args.startswith('ref_'):
-            ref_code = args[4:]  # Убираем префикс 'ref_'
-            logger.info(f"Referral code detected: {ref_code}")
-            
-            referrer_id = await get_user_by_referral_code(ref_code)
-            logger.info(f"Referrer ID found: {referrer_id}")
-            
-            # Проверяем, что пользователь не приглашает сам себя
-            if referrer_id and referrer_id != message.from_user.id:
-                # Добавляем реферала
-                success = await add_referral(referrer_id, message.from_user.id)
-                logger.info(f"Add referral result: {success}")
-                
-                if success:
-                    # Начисляем бонус рефереру после того как новый пользователь зарегистрируется
-                    bonus_claimed = await claim_referral_bonus(referrer_id, message.from_user.id, 1000)
-                    logger.info(f"Bonus claimed result: {bonus_claimed}")
-                    
-                    # Уведомляем реферера
-                    try:
-                        await bot.send_message(
-                            referrer_id,
-                            f"🎉 <b>Новый друг!</b>\n\n"
-                            f"Ваш друг {message.from_user.first_name} присоединился к игре!\n"
-                            f"💰 Вы получили <b>1000 монет</b>!",
-                            parse_mode="HTML"
-                        )
-                        logger.info(f"Notification sent to referrer {referrer_id}")
-                    except Exception as e:
-                        logger.error(f"Failed to send notification: {e}")
-                else:
-                    logger.warning(f"User {message.from_user.id} already registered as referral")
-            else:
-                logger.warning(f"Invalid referrer or self-referral: referrer_id={referrer_id}, user_id={message.from_user.id}")
-    elif not is_new_user and message.text and len(message.text.split()) > 1:
-        logger.info(f"User {message.from_user.id} is not new, referral not counted")
-    
-    welcome_text = (
+    # Получаем приветственное сообщение из настроек
+    default_welcome = (
         f"👋 <b>Добро пожаловать, {message.from_user.first_name}!</b>\n\n"
         "🎮 <b>Turbo Token</b>\n\n"
         "🎁 Открывай кейсы и получай предметы\n"
@@ -151,16 +114,21 @@ async def cmd_start(message: Message):
         "📊 Соревнуйся в рейтинге\n\n"
         "🚀 Нажми <b>\"🎁 Открыть кейсы\"</b> чтобы начать!"
     )
-    
-    # Добавляем отладочную информацию о реферале
-    if referrer_id and is_new_user:
-        welcome_text += f"\n\n✅ <b>Вы пришли по реферальной ссылке!</b>\nРеферер получил бонус."
+    welcome_text = await get_bot_setting('welcome_message', default_welcome)
+    welcome_text = welcome_text.replace('{first_name}', message.from_user.first_name)
     
     if await is_admin(message.from_user.id):
-        welcome_text += "\n\n🔑 <b>Вы вошли как администратор</b>"
         await message.answer(welcome_text, reply_markup=get_admin_keyboard(), parse_mode="HTML")
     else:
         await message.answer(welcome_text, reply_markup=get_main_keyboard(), parse_mode="HTML")
+    
+    # Отправляем отдельное сообщение о реферале
+    if referrer_id and is_new_user:
+        await message.answer(
+            "✅ <b>Вы пришли по реферальной ссылке!</b>\n"
+            "Ваш друг получил бонус 1000 монет!",
+            parse_mode="HTML"
+        )
 
 
 @dp.message(Command("admin"))
@@ -289,6 +257,49 @@ async def button_settings(message: Message):
     )
     
     await message.answer(settings_text, parse_mode="HTML")
+
+
+@dp.message(F.text == "💬 Изменить приветствие")
+async def button_change_welcome(message: Message, state: FSMContext):
+    """Изменение приветственного сообщения"""
+    if not await is_super_admin(message.from_user.id):
+        await message.answer("❌ Только главный администратор может изменять приветствие.")
+        return
+    
+    current_welcome = await get_bot_setting('welcome_message', 'Не установлено')
+    
+    change_text = (
+        "💬 <b>Изменение приветственного сообщения</b>\n\n"
+        "📝 Текущее приветствие:\n"
+        f"<code>{current_welcome[:500]}...</code>\n\n"
+        "Отправьте новое приветственное сообщение.\n\n"
+        "💡 Используйте <code>{first_name}</code> для вставки имени пользователя.\n"
+        "❌ Для отмены нажмите кнопку ниже."
+    )
+    
+    await message.answer(change_text, reply_markup=get_cancel_keyboard(), parse_mode="HTML")
+    await state.set_state(AdminStates.waiting_for_welcome_message)
+
+
+@dp.message(AdminStates.waiting_for_welcome_message)
+async def process_welcome_message(message: Message, state: FSMContext):
+    """Обработка нового приветственного сообщения"""
+    if message.text == "❌ Отменить":
+        await state.clear()
+        await message.answer("❌ Изменение отменено.", reply_markup=get_admin_keyboard())
+        return
+    
+    # Сохраняем новое приветствие
+    await set_bot_setting('welcome_message', message.text)
+    
+    success_text = (
+        "✅ <b>Приветственное сообщение обновлено!</b>\n\n"
+        "📝 Новое приветствие:\n"
+        f"{message.text[:500]}"
+    )
+    
+    await message.answer(success_text, reply_markup=get_admin_keyboard(), parse_mode="HTML")
+    await state.clear()
 
 
 @dp.message(F.text == "👨‍💼 Управление админами")
