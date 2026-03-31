@@ -744,11 +744,17 @@ async def get_leaderboard(limit: int = 100) -> List[Dict]:
 async def get_user_rank(user_id: int) -> int:
     """Получение позиции пользователя в рейтинге"""
     async with aiosqlite.connect(DATABASE_PATH) as db:
+        # Сначала получаем рейтинг пользователя
         async with db.execute("""
-            SELECT COUNT(*) + 1 FROM user_game_data
-            WHERE rating_score > (
-                SELECT rating_score FROM user_game_data WHERE user_id = ?
-            )
+            SELECT COALESCE(rating_score, 0) FROM user_game_data WHERE user_id = ?
         """, (user_id,)) as cursor:
             result = await cursor.fetchone()
-            return result[0] if result else 0
+            user_score = result[0] if result else 0
+        
+        # Теперь считаем, сколько пользователей имеют рейтинг выше
+        async with db.execute("""
+            SELECT COUNT(*) FROM user_game_data
+            WHERE COALESCE(rating_score, 0) > ?
+        """, (user_score,)) as cursor:
+            result = await cursor.fetchone()
+            return (result[0] + 1) if result else 1

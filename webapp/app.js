@@ -112,10 +112,10 @@ const cases = [
         price: 100,
         emoji: '📦',
         items: [
-            { name: 'Монета', rarity: 'common', value: 10, image: '🪙', exp: 5 },
-            { name: 'Кристалл', rarity: 'rare', value: 50, image: '💎', exp: 15 },
-            { name: 'Золото', rarity: 'epic', value: 150, image: '🏆', exp: 30 },
-            { name: 'Меч', rarity: 'legendary', value: 500, image: '⚔️', exp: 100 }
+            { name: 'Монета', rarity: 'common', value: 10, image: '🪙', exp: 5, chance: 50 },
+            { name: 'Кристалл', rarity: 'rare', value: 50, image: '💎', exp: 15, chance: 30 },
+            { name: 'Золото', rarity: 'epic', value: 150, image: '🏆', exp: 30, chance: 15 },
+            { name: 'Меч', rarity: 'legendary', value: 500, image: '⚔️', exp: 100, chance: 5 }
         ]
     },
     {
@@ -124,10 +124,10 @@ const cases = [
         price: 250,
         emoji: '🎁',
         items: [
-            { name: 'Серебро', rarity: 'common', value: 50, image: '🥈', exp: 10 },
-            { name: 'Рубин', rarity: 'rare', value: 150, image: '💍', exp: 25 },
-            { name: 'Корона', rarity: 'epic', value: 400, image: '👑', exp: 50 },
-            { name: 'Дракон', rarity: 'legendary', value: 1000, image: '🐉', exp: 150 }
+            { name: 'Серебро', rarity: 'common', value: 50, image: '🥈', exp: 10, chance: 50 },
+            { name: 'Рубин', rarity: 'rare', value: 150, image: '💍', exp: 25, chance: 30 },
+            { name: 'Корона', rarity: 'epic', value: 400, image: '👑', exp: 50, chance: 15 },
+            { name: 'Дракон', rarity: 'legendary', value: 1000, image: '🐉', exp: 150, chance: 5 }
         ]
     },
     {
@@ -136,10 +136,10 @@ const cases = [
         price: 500,
         emoji: '💎',
         items: [
-            { name: 'Золото', rarity: 'common', value: 100, image: '🟡', exp: 20 },
-            { name: 'Изумруд', rarity: 'rare', value: 300, image: '💚', exp: 40 },
-            { name: 'Посох', rarity: 'epic', value: 800, image: '🪄', exp: 80 },
-            { name: 'Феникс', rarity: 'legendary', value: 2000, image: '🔥', exp: 200 }
+            { name: 'Золото', rarity: 'common', value: 100, image: '🟡', exp: 20, chance: 50 },
+            { name: 'Изумруд', rarity: 'rare', value: 300, image: '💚', exp: 40, chance: 30 },
+            { name: 'Посох', rarity: 'epic', value: 800, image: '🪄', exp: 80, chance: 15 },
+            { name: 'Феникс', rarity: 'legendary', value: 2000, image: '🔥', exp: 200, chance: 5 }
         ]
     },
     {
@@ -148,10 +148,46 @@ const cases = [
         price: 1000,
         emoji: '👑',
         items: [
-            { name: 'Платина', rarity: 'rare', value: 500, image: '⚪', exp: 50 },
-            { name: 'Алмаз', rarity: 'epic', value: 1200, image: '💎', exp: 100 },
-            { name: 'Щит', rarity: 'legendary', value: 3000, image: '🛡️', exp: 250 },
-            { name: 'Единорог', rarity: 'legendary', value: 5000, image: '🦄', exp: 500 }
+            { name: 'Платина', rarity: 'rare', value: 500, image: '⚪', exp: 50, chance: 40 },
+            { name: 'Алмаз', rarity: 'epic', value: 1200, image: '💎', exp: 100, chance: 35 },
+            { name: 'Щит', rarity: 'legendary', value: 3000, image: '🛡️', exp: 250, chance: 20 },
+            { name: 'Единорог', rarity: 'legendary', value: 5000, image: '🦄', exp: 500, chance: 5 }
+        ]
+    },
+    {
+        id: 5,
+        name: 'Алмазный',
+        price: 2000,
+        emoji: '💠',
+        items: [
+            { name: 'Сапфир', rarity: 'rare', value: 800, image: '🔷', exp: 80, chance: 40 },
+            { name: 'Топаз', rarity: 'epic', value: 1800, image: '🟨', exp: 150, chance: 35 },
+            { name: 'Трон', rarity: 'legendary', value: 4500, image: '🪑', exp: 350, chance: 20 },
+            { name: 'Грифон', rarity: 'legendary', value: 8000, image: '🦅', exp: 700, chance: 5 }
+        ]
+    },
+    {
+        id: 6,
+        name: 'Мифический',
+        price: 5000,
+        emoji: '🌟',
+        items: [
+            { name: 'Опал', rarity: 'epic', value: 3000, image: '🔮', exp: 250, chance: 45 },
+            { name: 'Скипетр', rarity: 'legendary', value: 7000, image: '👑', exp: 500, chance: 30 },
+            { name: 'Дракон-король', rarity: 'legendary', value: 12000, image: '🐲', exp: 900, chance: 20 },
+            { name: 'Экскалибур', rarity: 'legendary', value: 20000, image: '⚔️', exp: 1500, chance: 5 }
+        ]
+    },
+    {
+        id: 7,
+        name: 'Божественный',
+        price: 10000,
+        emoji: '✨',
+        items: [
+            { name: 'Нефрит', rarity: 'epic', value: 6000, image: '🟢', exp: 450, chance: 45 },
+            { name: 'Крылья ангела', rarity: 'legendary', value: 15000, image: '🪽', exp: 1000, chance: 30 },
+            { name: 'Молот Тора', rarity: 'legendary', value: 25000, image: '🔨', exp: 1800, chance: 20 },
+            { name: 'Корона богов', rarity: 'legendary', value: 50000, image: '👑', exp: 3500, chance: 5 }
         ]
     }
 ];
@@ -606,6 +642,7 @@ function showCaseModal(caseItem) {
     document.getElementById('casePrice').textContent = `💰 ${caseItem.price}`;
     document.getElementById('caseResult').style.display = 'none';
     document.getElementById('casePreview').style.display = 'flex';
+    document.getElementById('caseRoulette').style.display = 'none';
     
     const caseBox = document.querySelector('.case-box-3d');
     caseBox.classList.remove('opening');
@@ -614,7 +651,28 @@ function showCaseModal(caseItem) {
     openBtn.disabled = false;
     openBtn.querySelector('.btn-text').textContent = 'Открыть кейс';
     
+    // Отображаем список призов с шансами
+    displayCaseItems(caseItem.items);
+    
     document.getElementById('caseModal').classList.add('active');
+}
+
+function displayCaseItems(items) {
+    const itemsListContent = document.getElementById('itemsListContent');
+    itemsListContent.innerHTML = '';
+    
+    items.forEach(item => {
+        const row = document.createElement('div');
+        row.className = `case-item-row ${item.rarity}`;
+        row.innerHTML = `
+            <div class="case-item-info">
+                <div class="case-item-emoji">${item.image}</div>
+                <div class="case-item-name">${item.name}</div>
+            </div>
+            <div class="case-item-chance">${item.chance}%</div>
+        `;
+        itemsListContent.appendChild(row);
+    });
 }
 
 function closeModal() {
@@ -635,13 +693,18 @@ function openCase() {
     openBtn.disabled = true;
     openBtn.querySelector('.btn-text').textContent = 'Открываем...';
     
-    const caseBox = document.querySelector('.case-box-3d');
-    caseBox.classList.add('opening');
+    // Скрываем превью и показываем рулетку
+    document.getElementById('casePreview').style.display = 'none';
+    document.getElementById('caseRoulette').style.display = 'block';
     
     tg.HapticFeedback.impactOccurred('medium');
     
-    setTimeout(() => {
-        const item = getRandomItem(currentCase.items);
+    // Определяем выигрышный предмет
+    const item = getRandomItem(currentCase.items);
+    
+    // Запускаем анимацию рулетки
+    startRouletteAnimation(currentCase.items, item, () => {
+        // После завершения анимации показываем результат
         showCaseResult(item);
         
         userData.balance += item.value;
@@ -673,25 +736,62 @@ function openCase() {
         
         openBtn.disabled = false;
         openBtn.querySelector('.btn-text').textContent = 'Открыть еще';
-    }, 1500);
+    });
+}
+
+function startRouletteAnimation(items, winItem, callback) {
+    const rouletteItems = document.getElementById('rouletteItems');
+    rouletteItems.innerHTML = '';
+    rouletteItems.style.transform = 'translateX(0)';
+    
+    // Создаем массив предметов для рулетки (50 предметов)
+    const rouletteArray = [];
+    for (let i = 0; i < 50; i++) {
+        const randomItem = items[Math.floor(Math.random() * items.length)];
+        rouletteArray.push(randomItem);
+    }
+    
+    // Вставляем выигрышный предмет в конец (позиция 45)
+    rouletteArray[45] = winItem;
+    
+    // Отображаем предметы
+    rouletteArray.forEach(item => {
+        const itemEl = document.createElement('div');
+        itemEl.className = `roulette-item ${item.rarity}`;
+        itemEl.innerHTML = `
+            <div class="roulette-item-emoji">${item.image}</div>
+            <div class="roulette-item-name">${item.name}</div>
+        `;
+        rouletteItems.appendChild(itemEl);
+    });
+    
+    // Запускаем анимацию
+    setTimeout(() => {
+        const itemWidth = 110; // 100px + 10px margin
+        const offset = 45 * itemWidth; // Позиция выигрышного предмета
+        rouletteItems.style.transform = `translateX(-${offset}px)`;
+    }, 100);
+    
+    // Вызываем callback после завершения анимации
+    setTimeout(() => {
+        document.getElementById('caseRoulette').style.display = 'none';
+        callback();
+    }, 3200);
 }
 
 function getRandomItem(items) {
-    const chances = { common: 50, rare: 30, epic: 15, legendary: 5 };
     const rand = Math.random() * 100;
     let cumulative = 0;
-    let rarity = 'common';
     
-    for (const [r, chance] of Object.entries(chances)) {
-        cumulative += chance;
+    // Используем шансы из предметов
+    for (const item of items) {
+        cumulative += item.chance;
         if (rand <= cumulative) {
-            rarity = r;
-            break;
+            return item;
         }
     }
     
-    const filtered = items.filter(i => i.rarity === rarity);
-    return filtered[Math.floor(Math.random() * filtered.length)] || items[0];
+    return items[0];
 }
 
 function showCaseResult(item) {

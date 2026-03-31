@@ -185,6 +185,14 @@
                 <button class="modal-close" id="modalClose">✕</button>
                 <h2 id="caseTitle">Кейс</h2>
                 
+                <!-- Анимация прокрутки -->
+                <div class="case-roulette" id="caseRoulette" style="display: none;">
+                    <div class="roulette-pointer"></div>
+                    <div class="roulette-container">
+                        <div class="roulette-items" id="rouletteItems"></div>
+                    </div>
+                </div>
+                
                 <div class="case-preview" id="casePreview">
                     <div class="case-box-3d">
                         <div class="case-glow-effect"></div>
@@ -201,6 +209,12 @@
                         <p class="result-value">💎 <span id="resultValue"></span></p>
                         <p class="result-exp">+<span id="resultExp"></span> XP</p>
                     </div>
+                </div>
+                
+                <!-- Список призов с шансами -->
+                <div class="case-items-list" id="caseItemsList">
+                    <h3 style="font-size: 14px; margin-bottom: 10px;">Возможные призы:</h3>
+                    <div id="itemsListContent"></div>
                 </div>
 
                 <button class="btn-open-case" id="openCaseBtn">
