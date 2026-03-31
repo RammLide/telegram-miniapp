@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Открытие кейсов</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎁 Открытие кейсов</h1>
+            <div class="user-info">
+                <span id="username">Загрузка...</span>
+                <span class="balance">💰 <span id="balance">0</span></span>
+            </div>
+        </header>
+
+        <main>
+            <!-- Список кейсов -->
+            <section class="cases-section">
+                <h2>Доступные кейсы</h2>
+                <div class="cases-grid" id="casesGrid">
+                    <!-- Кейсы будут загружены динамически -->
+                </div>
+            </section>
+
+            <!-- Модальное окно открытия кейса -->
+            <div class="modal" id="openModal">
+                <div class="modal-content">
+                    <span class="close" id="closeModal">&times;</span>
+                    <h2 id="caseTitle">Кейс</h2>
+                    <div class="case-animation" id="caseAnimation">
+                        <div class="case-box">
+                            <div class="case-lid"></div>
+                            <div class="case-body"></div>
+                        </div>
+                    </div>
+                    <div class="result" id="result" style="display: none;">
+                        <div class="item-card">
+                            <div class="item-rarity" id="itemRarity"></div>
+                            <img id="itemImage" src="" alt="Item">
+                            <h3 id="itemName"></h3>
+                            <p class="item-value">💎 <span id="itemValue"></span></p>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" id="openCaseBtn">Открыть кейс</button>
+                </div>
+            </div>
+
+            <!-- Инвентарь -->
+            <section class="inventory-section">
+                <h2>📦 Мой инвентарь</h2>
+                <div class="inventory-grid" id="inventoryGrid">
+                    <!-- Предметы будут загружены динамически -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
