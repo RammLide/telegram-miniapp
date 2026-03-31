@@ -145,6 +145,10 @@ async def cmd_start(message: Message):
         "🚀 Нажми <b>\"🎁 Открыть кейсы\"</b> чтобы начать!"
     )
     
+    # Добавляем отладочную информацию о реферале
+    if referrer_id:
+        welcome_text += f"\n\n✅ <b>Вы пришли по реферальной ссылке!</b>\nРеферер получил бонус."
+    
     if await is_admin(message.from_user.id):
         welcome_text += "\n\n🔑 <b>Вы вошли как администратор</b>"
         await message.answer(welcome_text, reply_markup=get_admin_keyboard(), parse_mode="HTML")
