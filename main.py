@@ -83,26 +83,16 @@ async def is_super_admin(user_id: int) -> bool:
 @dp.message(Command("start"))
 async def cmd_start(message: Message):
     """Обработчик команды /start"""
-    # Проверяем, новый ли это пользователь
+    # Проверяем, новый ли это пользователь ПЕРЕД добавлением в базу
     user_info = await get_user_info(message.from_user.id)
     is_new_user = user_info is None
     
-    # Проверяем реферальную ссылку (только для новых пользователей)
-    referrer_id = None
     logger.info(f"User {message.from_user.id} started bot with text: {message.text}, is_new_user: {is_new_user}")
     
-    # СНАЧАЛА добавляем пользователя в базу
-    await add_user(
-        user_id=message.from_user.id,
-        username=message.from_user.username,
-        first_name=message.from_user.first_name,
-        last_name=message.from_user.last_name
-    )
+    # Проверяем реферальную ссылку (только для новых пользователей)
+    referrer_id = None
+    ref_code = None
     
-    # Генерируем реферальный код для пользователя если его нет
-    await get_referral_code(message.from_user.id)
-    
-    # ОБРАБАТЫВАЕМ РЕФЕРАЛЬНУЮ ССЫЛКУ
     if is_new_user and message.text and len(message.text.split()) > 1:
         args = message.text.split()[1]
         logger.info(f"Start command args: {args}")
@@ -113,34 +103,43 @@ async def cmd_start(message: Message):
             
             referrer_id = await get_user_by_referral_code(ref_code)
             logger.info(f"Referrer ID found: {referrer_id}")
+    
+    # ТЕПЕРЬ добавляем пользователя в базу
+    await add_user(
+        user_id=message.from_user.id,
+        username=message.from_user.username,
+        first_name=message.from_user.first_name,
+        last_name=message.from_user.last_name
+    )
+    
+    # Генерируем реферальный код для пользователя если его нет
+    await get_referral_code(message.from_user.id)
+    
+    # ОБРАБАТЫВАЕМ РЕФЕРАЛА ПОСЛЕ добавления пользователя
+    if is_new_user and referrer_id and referrer_id != message.from_user.id:
+        # Добавляем реферала
+        success = await add_referral(referrer_id, message.from_user.id)
+        logger.info(f"Add referral result: {success}")
+        
+        if success:
+            # Начисляем бонус рефереру
+            bonus_claimed = await claim_referral_bonus(referrer_id, message.from_user.id, 1000)
+            logger.info(f"Bonus claimed result: {bonus_claimed}")
             
-            # Проверяем, что пользователь не приглашает сам себя
-            if referrer_id and referrer_id != message.from_user.id:
-                # Добавляем реферала
-                success = await add_referral(referrer_id, message.from_user.id)
-                logger.info(f"Add referral result: {success}")
-                
-                if success:
-                    # Начисляем бонус рефереру
-                    bonus_claimed = await claim_referral_bonus(referrer_id, message.from_user.id, 1000)
-                    logger.info(f"Bonus claimed result: {bonus_claimed}")
-                    
-                    # Уведомляем реферера
-                    try:
-                        await bot.send_message(
-                            referrer_id,
-                            f"🎉 <b>Новый друг!</b>\n\n"
-                            f"Ваш друг {message.from_user.first_name} присоединился к игре!\n"
-                            f"💰 Вы получили <b>1000 монет</b>!",
-                            parse_mode="HTML"
-                        )
-                        logger.info(f"Notification sent to referrer {referrer_id}")
-                    except Exception as e:
-                        logger.error(f"Failed to send notification: {e}")
-                else:
-                    logger.warning(f"User {message.from_user.id} already registered as referral")
-            else:
-                logger.warning(f"Invalid referrer or self-referral: referrer_id={referrer_id}, user_id={message.from_user.id}")
+            # Уведомляем реферера
+            try:
+                await bot.send_message(
+                    referrer_id,
+                    f"🎉 <b>Новый друг!</b>\n\n"
+                    f"Ваш друг {message.from_user.first_name} присоединился к игре!\n"
+                    f"💰 Вы получили <b>1000 монет</b>!",
+                    parse_mode="HTML"
+                )
+                logger.info(f"Notification sent to referrer {referrer_id}")
+            except Exception as e:
+                logger.error(f"Failed to send notification: {e}")
+        else:
+            logger.warning(f"User {message.from_user.id} already registered as referral")
     elif not is_new_user and message.text and len(message.text.split()) > 1:
         logger.info(f"User {message.from_user.id} is not new, referral not counted")
     

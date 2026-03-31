@@ -360,12 +360,17 @@ async function loadGameData() {
             if (data.upgrades && data.upgrades.length > 0) {
                 upgrades = data.upgrades;
             }
-            if (data.achievements && data.achievements.length > 0) {
-                achievements = data.achievements.map(a => ({
-                    achievement_id: a.achievement_id,
-                    progress: a.progress,
-                    unlocked: a.unlocked
-                }));
+            if (data.achievements) {
+                if (data.achievements.length > 0) {
+                    achievements = data.achievements.map(a => ({
+                        achievement_id: a.achievement_id,
+                        progress: a.progress,
+                        unlocked: a.unlocked
+                    }));
+                } else {
+                    // Инициализируем пустой массив достижений
+                    achievements = [];
+                }
             }
             
             // Получаем имя пользователя
