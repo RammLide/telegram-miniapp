@@ -719,9 +719,6 @@ function openCase() {
         return;
     }
     
-    userData.balance -= currentCase.price;
-    updateUI();
-    
     const openBtn = document.getElementById('openCaseBtn');
     openBtn.disabled = true;
     openBtn.querySelector('.btn-text').textContent = 'Открываем...';
@@ -732,43 +729,75 @@ function openCase() {
     
     tg.HapticFeedback.impactOccurred('medium');
     
-    // Определяем выигрышный предмет
-    const item = getRandomItem(currentCase.items);
-    
-    // Запускаем анимацию рулетки
-    startRouletteAnimation(currentCase.items, item, () => {
-        // После завершения анимации показываем результат
-        showCaseResult(item);
-        
-        userData.balance += item.value;
-        addExp(item.exp);
-        
-        addToHistory(currentCase.name, item);
-        updateAchievement('first_case', 1);
-        updateAchievement('case_10', openHistory.length);
-        updateAchievement('case_50', openHistory.length);
-        updateAchievement('case_100', openHistory.length);
-        updateAchievement('case_500', openHistory.length);
-        updateAchievement('case_1000', openHistory.length);
-        updateAchievement('rich', userData.balance);
-        updateAchievement('very_rich', userData.balance);
-        updateAchievement('millionaire', userData.balance);
-        updateAchievement('multimillionaire', userData.balance);
-        
-        if (item.rarity === 'legendary') {
-            updateAchievement('legendary_item', 1);
+    // Отправляем запрос на сервер для открытия кейса
+    fetch(`${API_URL}/api/open_case`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            user_id: userData.userId,
+            case_id: currentCase.id
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            showNotification('Ошибка: ' + data.error);
+            openBtn.disabled = false;
+            openBtn.querySelector('.btn-text').textContent = 'Открыть кейс';
+            document.getElementById('casePreview').style.display = 'flex';
+            document.getElementById('caseRoulette').style.display = 'none';
+            return;
         }
         
-        // Обновляем рейтинг
-        updateRatingScore();
+        const item = data.item;
         
-        updateUI();
-        
-        // Сохраняем данные сразу после открытия кейса
-        saveGameData();
-        
+        // Запускаем анимацию рулетки
+        startRouletteAnimation(currentCase.items, item, () => {
+            // После завершения анимации показываем результат
+            showCaseResult(item);
+            
+            // Обновляем баланс с сервера
+            userData.balance = data.balance;
+            addExp(item.exp || 10);
+            
+            addToHistory(currentCase.name, item);
+            updateAchievement('first_case', 1);
+            updateAchievement('case_10', openHistory.length);
+            updateAchievement('case_50', openHistory.length);
+            updateAchievement('case_100', openHistory.length);
+            updateAchievement('case_500', openHistory.length);
+            updateAchievement('case_1000', openHistory.length);
+            updateAchievement('rich', userData.balance);
+            updateAchievement('very_rich', userData.balance);
+            updateAchievement('millionaire', userData.balance);
+            updateAchievement('multimillionaire', userData.balance);
+            
+            if (item.rarity === 'legendary') {
+                updateAchievement('legendary_item', 1);
+            }
+            
+            // Обновляем рейтинг
+            updateRatingScore();
+            
+            updateUI();
+            
+            // Сохраняем данные сразу после открытия кейса
+            saveGameData();
+            
+            // Обновляем инвентарь
+            loadInventory();
+            
+            openBtn.disabled = false;
+            openBtn.querySelector('.btn-text').textContent = 'Открыть еще';
+        });
+    })
+    .catch(error => {
+        console.error('Error opening case:', error);
+        showNotification('Ошибка открытия кейса');
         openBtn.disabled = false;
-        openBtn.querySelector('.btn-text').textContent = 'Открыть еще';
+        openBtn.querySelector('.btn-text').textContent = 'Открыть кейс';
+        document.getElementById('casePreview').style.display = 'flex';
+        document.getElementById('caseRoulette').style.display = 'none';
     });
 }
 
