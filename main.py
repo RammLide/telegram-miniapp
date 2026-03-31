@@ -102,25 +102,73 @@ async def cmd_start(message: Message):
     # Генерируем реферальный код для пользователя если его нет
     await get_referral_code(message.from_user.id)
     
-    # Получаем приветственное сообщение из настроек
-    default_welcome = (
-        f"👋 <b>Добро пожаловать, {message.from_user.first_name}!</b>\n\n"
-        "🎮 <b>Turbo Token</b>\n\n"
-        "🎁 Открывай кейсы и получай предметы\n"
-        "👆 Кликай и зарабатывай монеты\n"
-        "⬆️ Улучшай свои способности\n"
-        "🏆 Получай достижения\n"
-        "👥 Приглашай друзей и получай бонусы\n"
-        "📊 Соревнуйся в рейтинге\n\n"
-        "🚀 Нажми <b>\"🎁 Открыть кейсы\"</b> чтобы начать!"
-    )
-    welcome_text = await get_bot_setting('welcome_message', default_welcome)
-    welcome_text = welcome_text.replace('{first_name}', message.from_user.first_name)
+    # Получаем тип приветственного сообщения
+    welcome_type = await get_bot_setting('welcome_message_type', 'text')
+    welcome_text = await get_bot_setting('welcome_message_text', '')
+    welcome_file_id = await get_bot_setting('welcome_message_file_id', '')
     
-    if await is_admin(message.from_user.id):
-        await message.answer(welcome_text, reply_markup=get_admin_keyboard(), parse_mode="HTML")
-    else:
-        await message.answer(welcome_text, reply_markup=get_main_keyboard(), parse_mode="HTML")
+    # Если нет сохраненного приветствия, используем дефолтное
+    if not welcome_text and not welcome_file_id:
+        welcome_text = (
+            f"👋 <b>Добро пожаловать, {message.from_user.first_name}!</b>\n\n"
+            "🎮 <b>Turbo Token</b>\n\n"
+            "🎁 Открывай кейсы и получай предметы\n"
+            "👆 Кликай и зарабатывай монеты\n"
+            "⬆️ Улучшай свои способности\n"
+            "🏆 Получай достижения\n"
+            "👥 Приглашай друзей и получай бонусы\n"
+            "📊 Соревнуйся в рейтинге\n\n"
+            "🚀 Нажми <b>\"🎁 Открыть кейсы\"</b> чтобы начать!"
+        )
+        welcome_type = 'text'
+    
+    # Заменяем {first_name} на реальное имя
+    if welcome_text:
+        welcome_text = welcome_text.replace('{first_name}', message.from_user.first_name)
+    
+    # Отправляем приветствие в зависимости от типа
+    keyboard = get_admin_keyboard() if await is_admin(message.from_user.id) else get_main_keyboard()
+    
+    try:
+        if welcome_type == 'photo' and welcome_file_id:
+            await message.answer_photo(
+                photo=welcome_file_id,
+                caption=welcome_text,
+                reply_markup=keyboard,
+                parse_mode="HTML"
+            )
+        elif welcome_type == 'video' and welcome_file_id:
+            await message.answer_video(
+                video=welcome_file_id,
+                caption=welcome_text,
+                reply_markup=keyboard,
+                parse_mode="HTML"
+            )
+        elif welcome_type == 'animation' and welcome_file_id:
+            await message.answer_animation(
+                animation=welcome_file_id,
+                caption=welcome_text,
+                reply_markup=keyboard,
+                parse_mode="HTML"
+            )
+        elif welcome_type == 'document' and welcome_file_id:
+            await message.answer_document(
+                document=welcome_file_id,
+                caption=welcome_text,
+                reply_markup=keyboard,
+                parse_mode="HTML"
+            )
+        else:
+            await message.answer(welcome_text, reply_markup=keyboard, parse_mode="HTML")
+    except Exception as e:
+        logger.error(f"Error sending welcome message: {e}")
+        # Если ошибка, отправляем текстовое приветствие
+        default_text = (
+            f"👋 <b>Добро пожаловать, {message.from_user.first_name}!</b>\n\n"
+            "🎮 <b>Turbo Token</b>\n\n"
+            "🚀 Нажми <b>\"🎁 Открыть кейсы\"</b> чтобы начать!"
+        )
+        await message.answer(default_text, reply_markup=keyboard, parse_mode="HTML")
     
     # Отправляем отдельное сообщение о реферале
     if referrer_id and is_new_user:
@@ -271,9 +319,14 @@ async def button_change_welcome(message: Message, state: FSMContext):
     change_text = (
         "💬 <b>Изменение приветственного сообщения</b>\n\n"
         "📝 Текущее приветствие:\n"
-        f"<code>{current_welcome[:500]}...</code>\n\n"
+        f"<code>{current_welcome[:300]}...</code>\n\n"
         "Отправьте новое приветственное сообщение.\n\n"
-        "💡 Используйте <code>{first_name}</code> для вставки имени пользователя.\n"
+        "💡 Можете отправить:\n"
+        "• Текст (используйте <code>{first_name}</code> для имени)\n"
+        "• Фото с подписью\n"
+        "• Видео с подписью\n"
+        "• GIF с подписью\n"
+        "• Документ с подписью\n\n"
         "❌ Для отмены нажмите кнопку ниже."
     )
     
@@ -289,14 +342,38 @@ async def process_welcome_message(message: Message, state: FSMContext):
         await message.answer("❌ Изменение отменено.", reply_markup=get_admin_keyboard())
         return
     
-    # Сохраняем новое приветствие
-    await set_bot_setting('welcome_message', message.text)
-    
-    success_text = (
-        "✅ <b>Приветственное сообщение обновлено!</b>\n\n"
-        "📝 Новое приветствие:\n"
-        f"{message.text[:500]}"
+    # Сохраняем ID сообщения и chat_id для копирования
+    await state.update_data(
+        welcome_message_id=message.message_id,
+        welcome_chat_id=message.chat.id
     )
+    
+    # Сохраняем текст если есть
+    if message.text:
+        await set_bot_setting('welcome_message_text', message.text)
+    elif message.caption:
+        await set_bot_setting('welcome_message_text', message.caption)
+    else:
+        await set_bot_setting('welcome_message_text', '')
+    
+    # Сохраняем тип медиа
+    if message.photo:
+        await set_bot_setting('welcome_message_type', 'photo')
+        await set_bot_setting('welcome_message_file_id', message.photo[-1].file_id)
+    elif message.video:
+        await set_bot_setting('welcome_message_type', 'video')
+        await set_bot_setting('welcome_message_file_id', message.video.file_id)
+    elif message.animation:
+        await set_bot_setting('welcome_message_type', 'animation')
+        await set_bot_setting('welcome_message_file_id', message.animation.file_id)
+    elif message.document:
+        await set_bot_setting('welcome_message_type', 'document')
+        await set_bot_setting('welcome_message_file_id', message.document.file_id)
+    else:
+        await set_bot_setting('welcome_message_type', 'text')
+        await set_bot_setting('welcome_message_file_id', '')
+    
+    success_text = "✅ <b>Приветственное сообщение обновлено!</b>\n\nНовые пользователи будут получать это сообщение."
     
     await message.answer(success_text, reply_markup=get_admin_keyboard(), parse_mode="HTML")
     await state.clear()
