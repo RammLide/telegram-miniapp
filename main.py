@@ -321,7 +321,12 @@ async def button_users_list(message: Message):
     )
     
     for idx, user_id in enumerate(page_users, start=start_idx + 1):
-        users_text += f"{idx}. ID: <code>{user_id}</code>\n"
+        user_info = await get_user_info(user_id)
+        if user_info:
+            username = f"@{user_info['username']}" if user_info.get('username') else user_info.get('first_name', 'Без имени')
+            users_text += f"{idx}. {username} <code>({user_id})</code>\n"
+        else:
+            users_text += f"{idx}. ID: <code>{user_id}</code>\n"
     
     if total_pages > 1:
         await message.answer(users_text, reply_markup=get_pagination_keyboard(page, total_pages), parse_mode="HTML")
@@ -645,7 +650,12 @@ async def callback_users_page(callback: CallbackQuery):
     )
     
     for idx, user_id in enumerate(page_users, start=start_idx + 1):
-        users_text += f"{idx}. ID: <code>{user_id}</code>\n"
+        user_info = await get_user_info(user_id)
+        if user_info:
+            username = f"@{user_info['username']}" if user_info.get('username') else user_info.get('first_name', 'Без имени')
+            users_text += f"{idx}. {username} <code>({user_id})</code>\n"
+        else:
+            users_text += f"{idx}. ID: <code>{user_id}</code>\n"
     
     await callback.message.edit_text(
         users_text, 
