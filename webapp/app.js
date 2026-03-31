@@ -943,6 +943,19 @@ async function loadReferralData() {
             
             console.log('🔗 Referral code set to:', userData.referralCode);
             
+            // Обновляем отображение реферальной ссылки
+            const referralLinkText = document.getElementById('referralLinkText');
+            if (referralLinkText) {
+                if (userData.referralCode) {
+                    const botUsername = 'Tesjdjsj_bot';
+                    const inviteLink = `https://t.me/${botUsername}?start=ref_${userData.referralCode}`;
+                    referralLinkText.textContent = inviteLink;
+                } else {
+                    referralLinkText.textContent = 'Ошибка: код не сгенерирован';
+                    referralLinkText.style.color = '#ff6b6b';
+                }
+            }
+            
             // Обновляем UI
             document.getElementById('friendsCount').textContent = userData.referralsCount;
             document.getElementById('friendsEarned').textContent = userData.referralsEarned.toLocaleString();
@@ -955,9 +968,19 @@ async function loadReferralData() {
             updateAchievement('referrer_legend', userData.referralsCount);
         } else {
             console.error('❌ Failed to load referral data, status:', response.status);
+            const referralLinkText = document.getElementById('referralLinkText');
+            if (referralLinkText) {
+                referralLinkText.textContent = 'Ошибка загрузки';
+                referralLinkText.style.color = '#ff6b6b';
+            }
         }
     } catch (error) {
         console.error('❌ Error loading referral data:', error);
+        const referralLinkText = document.getElementById('referralLinkText');
+        if (referralLinkText) {
+            referralLinkText.textContent = 'Ошибка: ' + error.message;
+            referralLinkText.style.color = '#ff6b6b';
+        }
     }
 }
 
