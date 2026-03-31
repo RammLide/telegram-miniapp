@@ -1002,7 +1002,15 @@ function getTimeAgo(timestamp) {
 // Достижения
 function loadAchievements() {
     const achievementsGrid = document.getElementById('achievementsGrid');
-    if (!achievementsGrid) return;
+    console.log('Loading achievements, grid element:', achievementsGrid);
+    console.log('Achievements data length:', achievementsData.length);
+    console.log('User achievements:', achievements);
+    
+    if (!achievementsGrid) {
+        console.error('achievementsGrid element not found!');
+        return;
+    }
+    
     achievementsGrid.innerHTML = '';
     
     achievementsData.forEach(achievement => {
@@ -1017,6 +1025,8 @@ function loadAchievements() {
         `;
         achievementsGrid.appendChild(card);
     });
+    
+    console.log('Achievements loaded, total cards:', achievementsGrid.children.length);
 }
 
 function updateAchievement(id, value) {
@@ -1041,11 +1051,14 @@ function updateAchievement(id, value) {
 }
 
 function openAchievementsModal() {
+    console.log('Opening achievements modal');
     loadAchievements();
     document.getElementById('achievementsModal').classList.add('active');
+    console.log('Modal opened');
 }
 
 function closeAchievementsModal() {
+    console.log('Closing achievements modal');
     document.getElementById('achievementsModal').classList.remove('active');
 }
 
