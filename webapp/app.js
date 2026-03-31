@@ -213,6 +213,7 @@ function setupEventListeners() {
 // Загрузка данных с сервера
 async function loadGameData() {
     try {
+        console.log('🔄 Loading game data from server...');
         const response = await fetch(`${API_URL}/api/game_data`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -221,18 +222,19 @@ async function loadGameData() {
         
         if (response.ok) {
             const data = await response.json();
+            console.log('📦 Received data from server:', data);
             
-            // Обновляем данные
+            // Обновляем данные (используем ?? вместо || для правильной обработки 0)
             if (data.game_data) {
-                userData.level = data.game_data.level || userData.level;
-                userData.exp = data.game_data.exp || userData.exp;
-                userData.expToNextLevel = data.game_data.exp_to_next_level || userData.expToNextLevel;
-                userData.totalClicks = data.game_data.total_clicks || userData.totalClicks;
-                userData.coinsPerClick = data.game_data.coins_per_click || userData.coinsPerClick;
-                userData.energy = data.game_data.energy || userData.energy;
-                userData.maxEnergy = data.game_data.max_energy || userData.maxEnergy;
+                userData.level = data.game_data.level ?? userData.level;
+                userData.exp = data.game_data.exp ?? userData.exp;
+                userData.expToNextLevel = data.game_data.exp_to_next_level ?? userData.expToNextLevel;
+                userData.totalClicks = data.game_data.total_clicks ?? userData.totalClicks;
+                userData.coinsPerClick = data.game_data.coins_per_click ?? userData.coinsPerClick;
+                userData.energy = data.game_data.energy ?? userData.energy;
+                userData.maxEnergy = data.game_data.max_energy ?? userData.maxEnergy;
             }
-            if (data.balance !== undefined) {
+            if (data.balance !== undefined && data.balance !== null) {
                 userData.balance = data.balance;
             }
             if (data.inventory) {
@@ -266,10 +268,15 @@ async function loadGameData() {
                 userData.firstName = tg.initDataUnsafe?.user?.first_name || userData.firstName;
             }
             
-            console.log('Game data loaded successfully from server');
+            console.log('✅ Game data loaded successfully from server');
+            console.log('💰 Balance:', userData.balance);
+            console.log('📊 Level:', userData.level);
+        } else {
+            console.warn('⚠️ Server returned error, loading from localStorage');
+            loadFromLocalStorage();
         }
     } catch (error) {
-        console.error('Error loading game data:', error);
+        console.error('❌ Error loading game data:', error);
         // Загружаем из localStorage как fallback
         loadFromLocalStorage();
         // Устанавливаем имя из Telegram если не загрузилось
@@ -285,6 +292,10 @@ async function saveGameData() {
     if (isLoading) return;
     
     try {
+        console.log('💾 Saving game data to server...');
+        console.log('📊 Current balance:', userData.balance);
+        console.log('📊 Current level:', userData.level);
+        
         const response = await fetch(`${API_URL}/api/save_game_data`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -307,11 +318,12 @@ async function saveGameData() {
         });
         
         if (response.ok) {
-            console.log('✅ Game data saved successfully');
+            const result = await response.json();
+            console.log('✅ Game data saved successfully:', result);
             // Также сохраняем в localStorage как резервную копию
             saveToLocalStorage();
         } else {
-            console.error('❌ Failed to save game data');
+            console.error('❌ Failed to save game data, status:', response.status);
             // Сохраняем локально если сервер вернул ошибку
             saveToLocalStorage();
         }
