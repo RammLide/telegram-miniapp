@@ -82,19 +82,29 @@ async def cmd_start(message: Message):
     """Обработчик команды /start"""
     # Проверяем реферальную ссылку
     referrer_id = None
+    logger.info(f"User {message.from_user.id} started bot with text: {message.text}")
+    
     if message.text and len(message.text.split()) > 1:
         args = message.text.split()[1]
+        logger.info(f"Start command args: {args}")
+        
         if args.startswith('ref_'):
             ref_code = args[4:]  # Убираем префикс 'ref_'
+            logger.info(f"Referral code detected: {ref_code}")
+            
             referrer_id = await get_user_by_referral_code(ref_code)
+            logger.info(f"Referrer ID found: {referrer_id}")
             
             # Проверяем, что пользователь не приглашает сам себя
             if referrer_id and referrer_id != message.from_user.id:
                 # Добавляем реферала
                 success = await add_referral(referrer_id, message.from_user.id)
+                logger.info(f"Add referral result: {success}")
+                
                 if success:
                     # Начисляем бонус рефереру после того как новый пользователь зарегистрируется
-                    await claim_referral_bonus(referrer_id, message.from_user.id, 1000)
+                    bonus_claimed = await claim_referral_bonus(referrer_id, message.from_user.id, 1000)
+                    logger.info(f"Bonus claimed result: {bonus_claimed}")
                     
                     # Уведомляем реферера
                     try:
@@ -105,8 +115,13 @@ async def cmd_start(message: Message):
                             f"💰 Вы получили <b>1000 монет</b>!",
                             parse_mode="HTML"
                         )
-                    except:
-                        pass
+                        logger.info(f"Notification sent to referrer {referrer_id}")
+                    except Exception as e:
+                        logger.error(f"Failed to send notification: {e}")
+                else:
+                    logger.warning(f"User {message.from_user.id} already registered as referral")
+            else:
+                logger.warning(f"Invalid referrer or self-referral: referrer_id={referrer_id}, user_id={message.from_user.id}")
     
     await add_user(
         user_id=message.from_user.id,
