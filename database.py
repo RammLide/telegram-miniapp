@@ -339,9 +339,11 @@ async def get_admin_logs(limit: int = 50) -> List[Dict]:
                 l.id,
                 l.admin_id,
                 u1.first_name as admin_name,
+                u1.username as admin_username,
                 l.action,
                 l.target_user_id,
                 u2.first_name as target_name,
+                u2.username as target_username,
                 l.details,
                 l.created_at
             FROM admin_logs l
@@ -356,11 +358,13 @@ async def get_admin_logs(limit: int = 50) -> List[Dict]:
                     "id": row[0],
                     "admin_id": row[1],
                     "admin_name": row[2] or "Неизвестный",
-                    "action": row[3],
-                    "target_user_id": row[4],
-                    "target_name": row[5] or "Неизвестный",
-                    "details": row[6],
-                    "created_at": row[7]
+                    "admin_username": row[3],
+                    "action": row[4],
+                    "target_user_id": row[5],
+                    "target_name": row[6] or "Неизвестный",
+                    "target_username": row[7],
+                    "details": row[8],
+                    "created_at": row[9]
                 }
                 for row in rows
             ]

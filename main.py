@@ -531,11 +531,14 @@ async def button_admin_logs(message: Message):
         
         action_name = action_names.get(log['action'], log['action'])
         
+        admin_username = f"@{log['admin_username']}" if log.get('admin_username') else log['admin_name']
+        
         logs_text += f"<b>#{i}. {action_emoji} {action_name}</b>\n"
-        logs_text += f"👤 Админ: <code>{log['admin_name']}</code>\n"
+        logs_text += f"👤 Админ: <code>{admin_username}</code>\n"
         
         if log['target_user_id']:
-            logs_text += f"🎯 Пользователь: <code>{log['target_name']}</code>\n"
+            target_username = f"@{log['target_username']}" if log.get('target_username') else log['target_name']
+            logs_text += f"🎯 Пользователь: <code>{target_username}</code>\n"
         
         if log['details']:
             details = log['details'][:50] + "..." if len(log['details']) > 50 else log['details']
@@ -1235,8 +1238,12 @@ async def callback_user_stats(callback: CallbackQuery):
     
     inventory_count = len(inventory) if inventory else 0
     
+    is_banned, ban_reason = await is_user_banned(user_id)
+    ban_status = f"🚫 <b>ЗАБЛОКИРОВАН</b>\nПричина: {ban_reason}\n\n" if is_banned else ""
+    
     stats_text = (
         f"📊 <b>Подробная статистика</b>\n\n"
+        f"{ban_status}"
         f"👤 <b>Пользователь:</b> {name}\n"
         f"🔗 Username: {username}\n"
         f"🆔 ID: <code>{user_id}</code>\n"
@@ -1256,7 +1263,7 @@ async def callback_user_stats(callback: CallbackQuery):
         f"  • Приглашено друзей: <b>{referrals_count}</b>\n"
     )
     
-    await callback.message.edit_text(stats_text, reply_markup=get_user_management_keyboard(user_id), parse_mode="HTML")
+    await callback.message.edit_text(stats_text, reply_markup=get_user_management_keyboard(user_id, is_banned), parse_mode="HTML")
 
 
 @dp.callback_query(F.data.startswith("ban_user_"))
@@ -1337,6 +1344,13 @@ async def process_ban_reason(message: Message, state: FSMContext):
     
     await message.answer(info_text, reply_markup=get_user_management_keyboard(user_id, is_banned=True), parse_mode="HTML")
     
+    # Уведомление админу об успешной блокировке
+    await message.answer(
+        f"✅ <b>Пользователь {name} ({username}) успешно заблокирован!</b>\n"
+        f"📄 Причина: {reason}",
+        parse_mode="HTML"
+    )
+    
     await state.clear()
 
 
@@ -1394,6 +1408,12 @@ async def callback_unban_user(callback: CallbackQuery):
     )
     
     await callback.message.edit_text(info_text, reply_markup=get_user_management_keyboard(user_id, is_banned=False), parse_mode="HTML")
+    
+    # Уведомление админу об успешной разблокировке
+    await callback.message.answer(
+        f"✅ <b>Пользователь {name} ({username}) успешно разблокирован!</b>",
+        parse_mode="HTML"
+    )
 
 
 @dp.callback_query(F.data.startswith("delete_user_"))
