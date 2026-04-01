@@ -1,8 +1,7 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 
-# ВАЖНО: Замените этот URL на ваш ngrok URL после запуска ngrok
-# Например: "https://1234-5678-90ab-cdef.ngrok-free.app/webapp/index.html"
-WEBAPP_URL = "https://telegram-miniapp-h5ei.onrender.com/webapp/index.html"
+# ВАЖНО: Замените этот URL на ваш Railway URL
+WEBAPP_URL = "https://web-production-b9e5d.up.railway.app/webapp/index.html"
 
 
 def get_main_keyboard() -> ReplyKeyboardMarkup:
