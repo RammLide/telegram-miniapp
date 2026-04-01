@@ -970,6 +970,21 @@ async def main():
     await init_db()
     logger.info("🤖 Бот запущен и готов к работе!")
     
+    # Устанавливаем Menu Button для WebApp
+    from aiogram.types import MenuButtonWebApp, WebAppInfo
+    from keyboards import WEBAPP_URL
+    
+    try:
+        await bot.set_chat_menu_button(
+            menu_button=MenuButtonWebApp(
+                text="🎁 Открыть кейсы",
+                web_app=WebAppInfo(url=WEBAPP_URL)
+            )
+        )
+        logger.info("✅ Menu Button установлена")
+    except Exception as e:
+        logger.error(f"❌ Ошибка установки Menu Button: {e}")
+    
     # Запускаем веб-сервер в фоне
     asyncio.create_task(start_web_server())
     
