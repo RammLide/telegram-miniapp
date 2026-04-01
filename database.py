@@ -22,9 +22,21 @@ async def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 referrer_id INTEGER,
-                referral_code TEXT UNIQUE
+                referral_code TEXT UNIQUE,
+                referrals_earned INTEGER DEFAULT 0
             )
         """)
+        
+        # Миграция: добавляем поле referrals_earned если его нет
+        try:
+            await db.execute("""
+                ALTER TABLE users ADD COLUMN referrals_earned INTEGER DEFAULT 0
+            """)
+            await db.commit()
+            logger.info("✅ Added referrals_earned column to users table")
+        except:
+            # Колонка уже существует
+            pass
         await db.execute("""
             CREATE TABLE IF NOT EXISTS admins (
                 user_id INTEGER PRIMARY KEY,
@@ -378,11 +390,45 @@ async def update_user_balance(user_id: int, amount: int):
         await db.commit()
 
 
-async def add_balance(user_id: int, amount: int):
+async def add_balance(user_id: int, amount: int, give_referrer_bonus: bool = True):
     """Добавление к балансу пользователя"""
     current_balance = await get_user_balance(user_id)
     new_balance = current_balance + amount
     await update_user_balance(user_id, new_balance)
+    
+    # Если включен бонус реферера, начисляем 5% тому кто пригласил
+    if give_referrer_bonus and amount > 0:
+        await give_referrer_percentage(user_id, amount)
+
+
+async def give_referrer_percentage(user_id: int, amount: int):
+    """Начисление процента реферу от заработка приглашенного"""
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        # Получаем ID того кто пригласил этого пользователя
+        async with db.execute("""
+            SELECT referrer_id FROM users WHERE user_id = ?
+        """, (user_id,)) as cursor:
+            result = await cursor.fetchone()
+            
+            if result and result[0]:
+                referrer_id = result[0]
+                # Начисляем 5% от заработка реферу
+                referrer_bonus = int(amount * 0.05)
+                
+                if referrer_bonus > 0:
+                    # Добавляем бонус реферу (без повторного начисления процента)
+                    referrer_balance = await get_user_balance(referrer_id)
+                    await update_user_balance(referrer_id, referrer_balance + referrer_bonus)
+                    
+                    # Обновляем статистику заработка с рефералов
+                    await db.execute("""
+                        UPDATE users 
+                        SET referrals_earned = COALESCE(referrals_earned, 0) + ?
+                        WHERE user_id = ?
+                    """, (referrer_bonus, referrer_id))
+                    await db.commit()
+                    
+                    logger.info(f"💰 Referrer {referrer_id} earned {referrer_bonus} (5% from {user_id}'s {amount})")
 
 
 async def subtract_balance(user_id: int, amount: int) -> bool:
@@ -703,8 +749,16 @@ async def get_referrals_count(user_id: int) -> int:
 
 async def get_referrals_earned(user_id: int) -> int:
     """Получение заработка с рефералов"""
-    count = await get_referrals_count(user_id)
-    return count * 1000  # 1000 монет за каждого реферала
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        async with db.execute("""
+            SELECT COALESCE(referrals_earned, 0) FROM users WHERE user_id = ?
+        """, (user_id,)) as cursor:
+            result = await cursor.fetchone()
+            if result:
+                # Возвращаем сумму из базы + бонус за приглашение (1000 за каждого)
+                count = await get_referrals_count(user_id)
+                return result[0] + (count * 1000)
+            return 0
 
 
 async def get_referrals_list(user_id: int) -> List[Dict]:

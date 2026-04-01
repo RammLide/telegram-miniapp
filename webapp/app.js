@@ -1025,7 +1025,14 @@ function showCaseResult(item) {
     document.getElementById('resultEmoji').textContent = item.image;
     document.getElementById('resultName').textContent = item.name;
     document.getElementById('resultValue').textContent = item.value;
-    document.getElementById('resultExp').textContent = item.exp;
+    
+    // Рассчитываем XP: 10% от стоимости предмета
+    const expGained = Math.floor(item.value * 0.1);
+    document.getElementById('resultExp').textContent = expGained;
+    
+    // Добавляем XP к пользователю
+    userData.exp += expGained;
+    checkLevelUp();
     
     result.style.display = 'block';
     
