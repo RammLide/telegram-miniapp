@@ -8,6 +8,11 @@ const API_URL = window.location.origin;
 
 // Функция для безопасного получения данных пользователя из Telegram
 function getTelegramUser() {
+    console.log('🔍 Getting Telegram user data...');
+    console.log('📱 tg object:', tg);
+    console.log('📱 tg.initDataUnsafe:', tg.initDataUnsafe);
+    console.log('📱 tg.initData:', tg.initData);
+    
     // Проверяем разные способы получения данных
     if (tg.initDataUnsafe?.user?.id) {
         console.log('✅ User data from initDataUnsafe:', tg.initDataUnsafe.user);
@@ -27,18 +32,36 @@ function getTelegramUser() {
             if (userParam) {
                 const user = JSON.parse(decodeURIComponent(userParam));
                 console.log('✅ User data from initData:', user);
-                return {
-                    id: user.id,
-                    firstName: user.first_name || 'Игрок',
-                    username: user.username || user.first_name || 'Игрок'
-                };
+                if (user.id) {
+                    return {
+                        id: user.id,
+                        firstName: user.first_name || 'Игрок',
+                        username: user.username || user.first_name || 'Игрок'
+                    };
+                }
             }
         } catch (e) {
             console.error('❌ Error parsing initData:', e);
         }
     }
     
-    console.warn('⚠️ No user data available, using default');
+    // Проверяем localStorage - может там сохранен правильный ID
+    const savedUserId = localStorage.getItem('telegram_user_id');
+    if (savedUserId && savedUserId !== '12345') {
+        console.log('✅ Using saved user ID from localStorage:', savedUserId);
+        return {
+            id: parseInt(savedUserId),
+            firstName: localStorage.getItem('telegram_first_name') || 'Игрок',
+            username: localStorage.getItem('telegram_username') || 'Игрок'
+        };
+    }
+    
+    console.error('❌ CRITICAL: No user data available! App may not work correctly!');
+    console.error('❌ Please open the app from the bot menu button or restart the bot');
+    
+    // Показываем предупреждение пользователю
+    alert('⚠️ Ошибка загрузки данных!\n\nПожалуйста, откройте приложение через кнопку меню бота (слева внизу).');
+    
     return {
         id: 12345,
         firstName: 'Игрок',
@@ -429,6 +452,11 @@ async function loadGameData() {
                 console.log('👤 User info from server:', userInfo);
                 userData.username = userInfo.first_name || userInfo.username || userData.username;
                 userData.firstName = userInfo.first_name || userData.firstName;
+                
+                // Сохраняем в localStorage для следующего раза
+                localStorage.setItem('telegram_user_id', userData.userId.toString());
+                localStorage.setItem('telegram_first_name', userData.firstName);
+                localStorage.setItem('telegram_username', userData.username);
             } else {
                 console.warn('⚠️ Failed to get user info from server, using Telegram data');
                 // Данные уже установлены из getTelegramUser()
