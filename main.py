@@ -1084,6 +1084,70 @@ async def callback_set_balance(callback: CallbackQuery):
     await callback.message.edit_text(balance_text, reply_markup=get_balance_edit_keyboard(user_id), parse_mode="HTML")
 
 
+@dp.callback_query(F.data.startswith("user_stats_"))
+async def callback_user_stats(callback: CallbackQuery):
+    """Показать подробную статистику пользователя"""
+    await callback.answer()
+    
+    user_id = int(callback.data.split("_")[-1])
+    user_info = await get_user_info(user_id)
+    
+    if not user_info:
+        await callback.message.edit_text("❌ Пользователь не найден")
+        return
+    
+    # Получаем все данные пользователя
+    from database import (
+        get_user_balance, 
+        get_user_game_data, 
+        get_user_inventory,
+        get_referrals_count,
+        get_referrals_earned
+    )
+    
+    balance = await get_user_balance(user_id)
+    game_data = await get_user_game_data(user_id)
+    inventory = await get_user_inventory(user_id)
+    referrals_count = await get_referrals_count(user_id)
+    referrals_earned = await get_referrals_earned(user_id)
+    
+    name = user_info.get('first_name', 'Без имени')
+    username = f"@{user_info['username']}" if user_info.get('username') else "Нет username"
+    created_at = user_info.get('created_at', 'Неизвестно')
+    
+    level = game_data.get('level', 1) if game_data else 1
+    exp = game_data.get('exp', 0) if game_data else 0
+    total_clicks = game_data.get('total_clicks', 0) if game_data else 0
+    coins_per_click = game_data.get('coins_per_click', 1) if game_data else 1
+    energy = game_data.get('energy', 1000) if game_data else 1000
+    max_energy = game_data.get('max_energy', 1000) if game_data else 1000
+    
+    inventory_count = len(inventory) if inventory else 0
+    
+    stats_text = (
+        f"📊 <b>Подробная статистика</b>\n\n"
+        f"👤 <b>Пользователь:</b> {name}\n"
+        f"🔗 Username: {username}\n"
+        f"🆔 ID: <code>{user_id}</code>\n"
+        f"📅 Регистрация: {created_at[:10] if created_at != 'Неизвестно' else created_at}\n\n"
+        f"💰 <b>Экономика:</b>\n"
+        f"  • Баланс: <b>{balance}</b> монет\n"
+        f"  • Заработано с рефералов: <b>{referrals_earned}</b> монет\n\n"
+        f"🎮 <b>Игровой прогресс:</b>\n"
+        f"  • Уровень: <b>{level}</b>\n"
+        f"  • Опыт: <b>{exp}</b> XP\n"
+        f"  • Монет за клик: <b>{coins_per_click}</b>\n"
+        f"  • Энергия: <b>{energy}/{max_energy}</b>\n"
+        f"  • Всего кликов: <b>{total_clicks}</b>\n\n"
+        f"🎒 <b>Инвентарь:</b>\n"
+        f"  • Предметов: <b>{inventory_count}</b>\n\n"
+        f"👥 <b>Рефералы:</b>\n"
+        f"  • Приглашено друзей: <b>{referrals_count}</b>\n"
+    )
+    
+    await callback.message.edit_text(stats_text, reply_markup=get_user_management_keyboard(user_id), parse_mode="HTML")
+
+
 @dp.callback_query(F.data == "back_to_users_list")
 async def callback_back_to_users_list(callback: CallbackQuery):
     """Вернуться к списку пользователей"""
