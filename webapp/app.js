@@ -952,15 +952,18 @@ function startRouletteAnimation(items, winItem, callback) {
         rouletteArray.push(randomItem);
     }
     
-    // Вставляем выигрышный предмет в позицию 40
+    // Добавляем выигрышный предмет (он будет на позиции 40)
+    rouletteArray.push(winItem);
     const winPosition = 40;
-    rouletteArray[winPosition] = winItem;
     
     // Добавляем еще 40 случайных предметов ПОСЛЕ выигрышного
     for (let i = 0; i < 40; i++) {
         const randomItem = items[Math.floor(Math.random() * items.length)];
         rouletteArray.push(randomItem);
     }
+    
+    console.log('🎰 Roulette array length:', rouletteArray.length);
+    console.log('🎯 Win item at position:', winPosition, '=', rouletteArray[winPosition]);
     
     // Отображаем предметы
     rouletteArray.forEach(item => {
@@ -985,6 +988,7 @@ function startRouletteAnimation(items, winItem, callback) {
         const itemWidth = 110;
         // Рассчитываем смещение: позиция предмета * ширину + половину ширины для центрирования
         const offset = (winPosition * itemWidth) + (itemWidth / 2);
+        console.log('📏 Offset:', offset, 'px');
         rouletteItems.style.transform = `translate(calc(-50% - ${offset}px), -50%)`;
     }, 100);
     
