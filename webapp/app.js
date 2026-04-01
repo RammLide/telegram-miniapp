@@ -1019,6 +1019,7 @@ function getRandomItem(items) {
 
 function showCaseResult(item) {
     document.getElementById('casePreview').style.display = 'none';
+    document.getElementById('caseItemsList').style.display = 'none';
     
     const result = document.getElementById('caseResult');
     document.getElementById('resultRarity').className = `result-rarity ${item.rarity}`;
@@ -1032,7 +1033,16 @@ function showCaseResult(item) {
     
     // Добавляем XP к пользователю
     userData.exp += expGained;
-    checkLevelUp();
+    
+    // Проверяем повышение уровня
+    while (userData.exp >= userData.expToNextLevel) {
+        userData.exp -= userData.expToNextLevel;
+        userData.level++;
+        userData.expToNextLevel = Math.floor(userData.expToNextLevel * 1.5);
+        showNotification(`🎉 Поздравляем! Вы достигли ${userData.level} уровня!`);
+    }
+    
+    updateUI();
     
     result.style.display = 'block';
     

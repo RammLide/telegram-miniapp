@@ -403,6 +403,7 @@ async def add_balance(user_id: int, amount: int, give_referrer_bonus: bool = Tru
 
 async def give_referrer_percentage(user_id: int, amount: int):
     """Начисление процента реферу от заработка приглашенного"""
+    logger.info(f"🔍 Checking referrer for user {user_id}, amount: {amount}")
     async with aiosqlite.connect(DATABASE_PATH) as db:
         # Получаем ID того кто пригласил этого пользователя
         async with db.execute("""
@@ -414,6 +415,8 @@ async def give_referrer_percentage(user_id: int, amount: int):
                 referrer_id = result[0]
                 # Начисляем 5% от заработка реферу
                 referrer_bonus = int(amount * 0.05)
+                
+                logger.info(f"✅ Found referrer {referrer_id} for user {user_id}, bonus: {referrer_bonus}")
                 
                 if referrer_bonus > 0:
                     # Добавляем бонус реферу (без повторного начисления процента)
@@ -429,6 +432,8 @@ async def give_referrer_percentage(user_id: int, amount: int):
                     await db.commit()
                     
                     logger.info(f"💰 Referrer {referrer_id} earned {referrer_bonus} (5% from {user_id}'s {amount})")
+            else:
+                logger.info(f"ℹ️ No referrer found for user {user_id}")
 
 
 async def subtract_balance(user_id: int, amount: int) -> bool:

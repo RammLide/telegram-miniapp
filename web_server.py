@@ -180,8 +180,9 @@ async def open_case_endpoint(request):
             selected_item['image']
         )
         
-        # Добавляем стоимость предмета к балансу
-        await add_balance(user_id, selected_item['value'])
+        # Добавляем стоимость предмета к балансу (с начислением процента реферу)
+        logger.info(f"💰 Adding {selected_item['value']} to user {user_id} balance")
+        await add_balance(user_id, selected_item['value'], give_referrer_bonus=True)
         
         # Логируем открытие
         await log_case_opening(user_id, case['name'], selected_item['name'], selected_item['value'])
