@@ -160,6 +160,37 @@ async def init_db():
             )
         """)
         
+        # Таблица для блокировок пользователей
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS user_bans (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                banned_by INTEGER,
+                reason TEXT DEFAULT 'Нарушение правил Turbo Token!',
+                banned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                is_active INTEGER DEFAULT 1,
+                unbanned_at TIMESTAMP,
+                unbanned_by INTEGER,
+                FOREIGN KEY (user_id) REFERENCES users(user_id),
+                FOREIGN KEY (banned_by) REFERENCES users(user_id),
+                FOREIGN KEY (unbanned_by) REFERENCES users(user_id)
+            )
+        """)
+        
+        # Таблица для логов действий админов
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS admin_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                admin_id INTEGER,
+                action TEXT,
+                target_user_id INTEGER,
+                details TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (admin_id) REFERENCES users(user_id),
+                FOREIGN KEY (target_user_id) REFERENCES users(user_id)
+            )
+        """)
+        
         await db.commit()
         logger.info("База данных инициализирована")
 
@@ -204,6 +235,111 @@ async def get_users_count() -> int:
         async with db.execute("SELECT COUNT(*) FROM users") as cursor:
             result = await cursor.fetchone()
             return result[0] if result else 0
+
+
+# ==================== ФУНКЦИИ ДЛЯ БЛОКИРОВОК ====================
+
+async def ban_user(user_id: int, banned_by: int, reason: str = "Нарушение правил Turbo Token!"):
+    """Блокировка пользователя"""
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        await db.execute("""
+            INSERT INTO user_bans (user_id, banned_by, reason)
+            VALUES (?, ?, ?)
+        """, (user_id, banned_by, reason))
+        await db.commit()
+        logger.info(f"🚫 User {user_id} banned by {banned_by}, reason: {reason}")
+
+
+async def unban_user(user_id: int, unbanned_by: int):
+    """Разблокировка пользователя"""
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        await db.execute("""
+            UPDATE user_bans 
+            SET is_active = 0, unbanned_at = CURRENT_TIMESTAMP, unbanned_by = ?
+            WHERE user_id = ? AND is_active = 1
+        """, (unbanned_by, user_id))
+        await db.commit()
+        logger.info(f"✅ User {user_id} unbanned by {unbanned_by}")
+
+
+async def is_user_banned(user_id: int) -> tuple:
+    """Проверка блокировки пользователя. Возвращает (is_banned, reason)"""
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        async with db.execute("""
+            SELECT reason FROM user_bans 
+            WHERE user_id = ? AND is_active = 1
+            ORDER BY banned_at DESC LIMIT 1
+        """, (user_id,)) as cursor:
+            result = await cursor.fetchone()
+            if result:
+                return (True, result[0])
+            return (False, None)
+
+
+async def delete_user_completely(user_id: int):
+    """Полное удаление пользователя из базы данных"""
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        # Удаляем из всех таблиц
+        await db.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
+        await db.execute("DELETE FROM user_balance WHERE user_id = ?", (user_id,))
+        await db.execute("DELETE FROM user_inventory WHERE user_id = ?", (user_id,))
+        await db.execute("DELETE FROM user_game_data WHERE user_id = ?", (user_id,))
+        await db.execute("DELETE FROM user_upgrades WHERE user_id = ?", (user_id,))
+        await db.execute("DELETE FROM user_achievements WHERE user_id = ?", (user_id,))
+        await db.execute("DELETE FROM referrals WHERE referrer_id = ? OR referred_id = ?", (user_id, user_id))
+        await db.execute("DELETE FROM user_bans WHERE user_id = ?", (user_id,))
+        await db.execute("DELETE FROM marketplace WHERE seller_id = ?", (user_id,))
+        await db.execute("DELETE FROM referral_earnings WHERE referrer_id = ? OR referred_id = ?", (user_id, user_id))
+        await db.commit()
+        logger.info(f"🗑️ User {user_id} completely deleted from database")
+
+
+# ==================== ФУНКЦИИ ДЛЯ ЛОГОВ АДМИНОВ ====================
+
+async def log_admin_action(admin_id: int, action: str, target_user_id: int = None, details: str = None):
+    """Логирование действия админа"""
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        await db.execute("""
+            INSERT INTO admin_logs (admin_id, action, target_user_id, details)
+            VALUES (?, ?, ?, ?)
+        """, (admin_id, action, target_user_id, details))
+        await db.commit()
+        logger.info(f"📝 Admin {admin_id} action logged: {action}")
+
+
+async def get_admin_logs(limit: int = 50) -> List[Dict]:
+    """Получение логов действий админов"""
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        async with db.execute("""
+            SELECT 
+                l.id,
+                l.admin_id,
+                u1.first_name as admin_name,
+                l.action,
+                l.target_user_id,
+                u2.first_name as target_name,
+                l.details,
+                l.created_at
+            FROM admin_logs l
+            LEFT JOIN users u1 ON l.admin_id = u1.user_id
+            LEFT JOIN users u2 ON l.target_user_id = u2.user_id
+            ORDER BY l.created_at DESC
+            LIMIT ?
+        """, (limit,)) as cursor:
+            rows = await cursor.fetchall()
+            return [
+                {
+                    "id": row[0],
+                    "admin_id": row[1],
+                    "admin_name": row[2] or "Неизвестный",
+                    "action": row[3],
+                    "target_user_id": row[4],
+                    "target_name": row[5] or "Неизвестный",
+                    "details": row[6],
+                    "created_at": row[7]
+                }
+                for row in rows
+            ]
 
 
 # ==================== ФУНКЦИИ ДЛЯ АДМИНОВ ====================

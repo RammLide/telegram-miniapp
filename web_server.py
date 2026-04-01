@@ -245,6 +245,7 @@ def setup_routes(app):
     app.router.add_post('/api/user_info', get_user_info_endpoint)
     app.router.add_post('/api/referral_data', get_referral_data_endpoint)
     app.router.add_post('/api/leaderboard', get_leaderboard_endpoint)
+    app.router.add_post('/api/check_ban', check_ban_endpoint)
     app.router.add_post('/api/marketplace/listings', get_marketplace_listings_endpoint)
     app.router.add_post('/api/marketplace/create', create_marketplace_listing_endpoint)
     app.router.add_post('/api/marketplace/buy', buy_marketplace_item_endpoint)
@@ -417,6 +418,28 @@ async def get_leaderboard_endpoint(request):
     
     except Exception as e:
         logger.error(f"Error in get_leaderboard: {e}")
+        return web.json_response({'error': str(e)}, status=500)
+
+
+async def check_ban_endpoint(request):
+    """Проверка блокировки пользователя"""
+    try:
+        data = await request.json()
+        user_id = data.get('user_id')
+        
+        if not user_id:
+            return web.json_response({'error': 'user_id required'}, status=400)
+        
+        from database import is_user_banned
+        is_banned, reason = await is_user_banned(user_id)
+        
+        return web.json_response({
+            'is_banned': is_banned,
+            'reason': reason
+        })
+    
+    except Exception as e:
+        logger.error(f"Error in check_ban: {e}")
         return web.json_response({'error': str(e)}, status=500)
 
 

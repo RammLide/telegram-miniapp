@@ -301,6 +301,42 @@ async function initApp() {
     console.log('📱 Telegram initDataUnsafe:', tg.initDataUnsafe);
     console.log('📱 Telegram initData:', tg.initData);
     
+    // Проверяем блокировку пользователя
+    try {
+        const banCheckResponse = await fetch(`${API_URL}/api/check_ban`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userData.userId })
+        });
+        
+        if (banCheckResponse.ok) {
+            const banData = await banCheckResponse.json();
+            if (banData.is_banned) {
+                // Показываем экран блокировки
+                document.body.innerHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; padding: 20px; text-align: center; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);">
+                        <div style="background: rgba(255,255,255,0.05); padding: 30px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); max-width: 400px; border: 2px solid #ff6b6b;">
+                            <div style="font-size: 60px; margin-bottom: 20px;">🚫</div>
+                            <h2 style="color: #ff6b6b; margin-bottom: 15px;">Аккаунт заблокирован</h2>
+                            <p style="color: #fff; margin-bottom: 15px; line-height: 1.6;">
+                                <strong>Причина:</strong><br>${banData.reason}
+                            </p>
+                            <p style="color: #a0a0a0; margin-bottom: 25px; line-height: 1.6; font-size: 14px;">
+                                Если вы не согласны с блокировкой, обратитесь в <a href="https://t.me/turbo_token_support" style="color: #667eea; text-decoration: none;">поддержку</a>.
+                            </p>
+                            <button onclick="window.Telegram.WebApp.close()" style="background: #667eea; color: white; border: none; padding: 15px 30px; border-radius: 10px; font-size: 16px; cursor: pointer; font-weight: bold;">
+                                Закрыть
+                            </button>
+                        </div>
+                    </div>
+                `;
+                return; // Останавливаем инициализацию
+            }
+        }
+    } catch (error) {
+        console.error('Error checking ban status:', error);
+    }
+    
     // Загружаем аватарку пользователя
     loadUserAvatar();
     

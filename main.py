@@ -16,7 +16,9 @@ from database import (
     log_event, get_users_today, get_users_week, get_users_month, 
     get_active_users_today, get_user_info, get_broadcast_stats,
     get_referral_code, get_user_by_referral_code, add_referral, claim_referral_bonus,
-    get_bot_setting, set_bot_setting
+    get_bot_setting, set_bot_setting,
+    ban_user, unban_user, is_user_banned, delete_user_completely,
+    log_admin_action, get_admin_logs
 )
 from keyboards import (
     get_main_keyboard, 
@@ -66,7 +68,11 @@ class BroadcastStates(StatesGroup):
 class AdminStates(StatesGroup):
     waiting_for_admin_id = State()
     waiting_for_welcome_message = State()
-    waiting_for_welcome_message = State()
+
+
+class BanStates(StatesGroup):
+    waiting_for_ban_reason = State()
+    user_id_to_ban = State()
 
 
 async def is_admin(user_id: int) -> bool:
@@ -442,6 +448,47 @@ async def button_manage_admins(message: Message):
     )
     
     await message.answer(manage_text, reply_markup=get_admin_management_keyboard(), parse_mode="HTML")
+
+
+@dp.message(F.text == "📝 Логи админов")
+async def button_admin_logs(message: Message):
+    """Просмотр логов действий админов"""
+    if not await is_super_admin(message.from_user.id):
+        await message.answer("❌ Только главный администратор может просматривать логи.")
+        return
+    
+    logs = await get_admin_logs(limit=20)
+    
+    if not logs:
+        await message.answer("📝 Логи действий админов пусты.")
+        return
+    
+    logs_text = "📝 <b>Логи действий админов</b>\n\n"
+    
+    for log in logs:
+        action_emoji = {
+            "BAN_USER": "🚫",
+            "UNBAN_USER": "✅",
+            "DELETE_USER": "🗑️",
+            "ADD_BALANCE": "💰",
+            "SUB_BALANCE": "💸",
+            "SET_BALANCE": "💵"
+        }.get(log['action'], "📌")
+        
+        logs_text += (
+            f"{action_emoji} <b>{log['action']}</b>\n"
+            f"👤 Админ: {log['admin_name']} (ID: {log['admin_id']})\n"
+        )
+        
+        if log['target_user_id']:
+            logs_text += f"🎯 Цель: {log['target_name']} (ID: {log['target_user_id']})\n"
+        
+        if log['details']:
+            logs_text += f"📄 Детали: {log['details']}\n"
+        
+        logs_text += f"🕐 {log['created_at'][:16]}\n\n"
+    
+    await message.answer(logs_text, parse_mode="HTML")
 
 
 @dp.message(F.text == "👤 Режим пользователя")
@@ -1146,6 +1193,143 @@ async def callback_user_stats(callback: CallbackQuery):
     )
     
     await callback.message.edit_text(stats_text, reply_markup=get_user_management_keyboard(user_id), parse_mode="HTML")
+
+
+@dp.callback_query(F.data.startswith("ban_user_"))
+async def callback_ban_user(callback: CallbackQuery, state: FSMContext):
+    """Начать процесс блокировки пользователя"""
+    await callback.answer()
+    
+    user_id = int(callback.data.split("_")[-1])
+    
+    # Проверка: нельзя заблокировать главного админа
+    if user_id == ADMIN_ID:
+        await callback.message.answer("❌ Нельзя заблокировать главного администратора!")
+        return
+    
+    # Сохраняем ID пользователя для блокировки
+    await state.update_data(user_id_to_ban=user_id)
+    await state.set_state(BanStates.waiting_for_ban_reason)
+    
+    await callback.message.answer(
+        f"🚫 <b>Блокировка пользователя</b>\n\n"
+        f"Введите причину блокировки или отправьте /skip для использования стандартной причины:\n"
+        f"<i>\"Нарушение правил Turbo Token!\"</i>",
+        parse_mode="HTML"
+    )
+
+
+@dp.message(BanStates.waiting_for_ban_reason)
+async def process_ban_reason(message: Message, state: FSMContext):
+    """Обработка причины блокировки"""
+    data = await state.get_data()
+    user_id = data.get('user_id_to_ban')
+    
+    if message.text == "/skip":
+        reason = "Нарушение правил Turbo Token!"
+    else:
+        reason = message.text
+    
+    # Блокируем пользователя
+    await ban_user(user_id, message.from_user.id, reason)
+    
+    # Логируем действие
+    await log_admin_action(message.from_user.id, "BAN_USER", user_id, reason)
+    
+    # Уведомляем пользователя
+    user_info = await get_user_info(user_id)
+    name = user_info.get('first_name', 'Пользователь') if user_info else 'Пользователь'
+    
+    try:
+        await bot.send_message(
+            user_id,
+            f"🚫 <b>Ваш аккаунт заблокирован</b>\n\n"
+            f"<b>Причина:</b> {reason}\n\n"
+            f"Если вы не согласны с блокировкой, обратитесь в <a href='https://t.me/turbo_token_support'>поддержку</a>.",
+            parse_mode="HTML"
+        )
+    except:
+        pass
+    
+    await message.answer(
+        f"✅ Пользователь <b>{name}</b> (ID: {user_id}) заблокирован.\n"
+        f"Причина: {reason}",
+        parse_mode="HTML"
+    )
+    
+    await state.clear()
+
+
+@dp.callback_query(F.data.startswith("unban_user_"))
+async def callback_unban_user(callback: CallbackQuery):
+    """Разблокировать пользователя"""
+    await callback.answer()
+    
+    user_id = int(callback.data.split("_")[-1])
+    
+    # Проверяем, заблокирован ли пользователь
+    is_banned, reason = await is_user_banned(user_id)
+    
+    if not is_banned:
+        await callback.message.answer("ℹ️ Этот пользователь не заблокирован.")
+        return
+    
+    # Разблокируем
+    await unban_user(user_id, callback.from_user.id)
+    
+    # Логируем действие
+    await log_admin_action(callback.from_user.id, "UNBAN_USER", user_id)
+    
+    # Уведомляем пользователя
+    user_info = await get_user_info(user_id)
+    name = user_info.get('first_name', 'Пользователь') if user_info else 'Пользователь'
+    
+    try:
+        await bot.send_message(
+            user_id,
+            f"✅ <b>Ваш аккаунт разблокирован</b>\n\n"
+            f"Вы снова можете пользоваться Turbo Token!",
+            parse_mode="HTML"
+        )
+    except:
+        pass
+    
+    await callback.message.answer(
+        f"✅ Пользователь <b>{name}</b> (ID: {user_id}) разблокирован.",
+        parse_mode="HTML"
+    )
+
+
+@dp.callback_query(F.data.startswith("delete_user_"))
+async def callback_delete_user(callback: CallbackQuery):
+    """Удалить пользователя (только для главного админа)"""
+    await callback.answer()
+    
+    # Проверка: только главный админ
+    if not await is_super_admin(callback.from_user.id):
+        await callback.message.answer("❌ Эта функция доступна только главному администратору!")
+        return
+    
+    user_id = int(callback.data.split("_")[-1])
+    
+    # Проверка: нельзя удалить главного админа
+    if user_id == ADMIN_ID:
+        await callback.message.answer("❌ Нельзя удалить главного администратора!")
+        return
+    
+    user_info = await get_user_info(user_id)
+    name = user_info.get('first_name', 'Пользователь') if user_info else 'Пользователь'
+    
+    # Удаляем пользователя
+    await delete_user_completely(user_id)
+    
+    # Логируем действие
+    await log_admin_action(callback.from_user.id, "DELETE_USER", user_id, f"Deleted user: {name}")
+    
+    await callback.message.answer(
+        f"🗑️ Пользователь <b>{name}</b> (ID: {user_id}) полностью удален из базы данных.",
+        parse_mode="HTML"
+    )
 
 
 @dp.callback_query(F.data == "back_to_users_list")

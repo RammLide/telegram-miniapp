@@ -28,7 +28,7 @@ def get_admin_keyboard() -> ReplyKeyboardMarkup:
         keyboard=[
             [KeyboardButton(text="📊 Статистика"), KeyboardButton(text="📢 Рассылка")],
             [KeyboardButton(text="👥 Список пользователей"), KeyboardButton(text="👨‍💼 Управление админами")],
-            [KeyboardButton(text="💬 Изменить приветствие"), KeyboardButton(text="⚙️ Настройки")],
+            [KeyboardButton(text="📝 Логи админов"), KeyboardButton(text="⚙️ Настройки")],
             [KeyboardButton(text="👤 Режим пользователя")]
         ],
         resize_keyboard=True,
@@ -174,6 +174,9 @@ def get_user_management_keyboard(user_id: int) -> InlineKeyboardMarkup:
         inline_keyboard=[
             [InlineKeyboardButton(text="💰 Изменить баланс", callback_data=f"edit_balance_{user_id}")],
             [InlineKeyboardButton(text="📊 Показать статистику", callback_data=f"user_stats_{user_id}")],
+            [InlineKeyboardButton(text="🚫 Заблокировать", callback_data=f"ban_user_{user_id}")],
+            [InlineKeyboardButton(text="✅ Разблокировать", callback_data=f"unban_user_{user_id}")],
+            [InlineKeyboardButton(text="🗑️ Удалить аккаунт", callback_data=f"delete_user_{user_id}")],
             [InlineKeyboardButton(text="◀️ Назад к списку", callback_data="back_to_users_list")]
         ]
     )
