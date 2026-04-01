@@ -526,7 +526,7 @@ main {
 /* Achievements */
 .achievements-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
 }
 
@@ -536,6 +536,8 @@ main {
     padding: 15px;
     text-align: center;
     border: 2px solid rgba(255,255,255,0.1);
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .achievement-card.unlocked {

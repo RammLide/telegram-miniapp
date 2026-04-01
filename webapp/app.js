@@ -988,8 +988,8 @@ function startRouletteAnimation(items, winItem, callback) {
         const itemWidth = 110;
         // Центр экрана находится в 50% от ширины контейнера
         // Нужно сместить ленту влево так, чтобы выигрышный предмет (позиция 40) оказался в центре
-        // Смещение = позиция * ширина предмета
-        const offset = winPosition * itemWidth;
+        // Смещение = позиция * ширина предмета + половина ширины предмета (чтобы центр предмета был под стрелкой)
+        const offset = (winPosition * itemWidth) + (itemWidth / 2);
         console.log('📏 Offset:', offset, 'px');
         // Смещаем влево на offset пикселей, и центрируем по вертикали
         rouletteItems.style.transform = `translate(-${offset}px, -50%)`;
