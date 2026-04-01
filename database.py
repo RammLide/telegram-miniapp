@@ -143,19 +143,23 @@ async def init_db():
                 price INTEGER,
                 status TEXT DEFAULT 'active',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                sold_at TIMESTAMP,
-                buyer_id INTEGER,
-                FOREIGN KEY (seller_id) REFERENCES users(user_id),
-                FOREIGN KEY (buyer_id) REFERENCES users(user_id)
+                FOREIGN KEY (seller_id) REFERENCES users(user_id)
             )
         """)
+        
+        # Таблица для отслеживания заработка с каждого реферала
         await db.execute("""
-            CREATE TABLE IF NOT EXISTS bot_settings (
-                key TEXT PRIMARY KEY,
-                value TEXT,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            CREATE TABLE IF NOT EXISTS referral_earnings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                referrer_id INTEGER,
+                referred_id INTEGER,
+                amount INTEGER,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (referrer_id) REFERENCES users(user_id),
+                FOREIGN KEY (referred_id) REFERENCES users(user_id)
             )
         """)
+        
         await db.commit()
         logger.info("База данных инициализирована")
 
@@ -429,6 +433,13 @@ async def give_referrer_percentage(user_id: int, amount: int):
                         SET referrals_earned = COALESCE(referrals_earned, 0) + ?
                         WHERE user_id = ?
                     """, (referrer_bonus, referrer_id))
+                    
+                    # Записываем заработок в таблицу referral_earnings
+                    await db.execute("""
+                        INSERT INTO referral_earnings (referrer_id, referred_id, amount)
+                        VALUES (?, ?, ?)
+                    """, (referrer_id, user_id, referrer_bonus))
+                    
                     await db.commit()
                     
                     logger.info(f"💰 Referrer {referrer_id} earned {referrer_bonus} (5% from {user_id}'s {amount})")
@@ -769,13 +780,6 @@ async def get_referrals_earned(user_id: int) -> int:
 async def get_referrals_list(user_id: int) -> List[Dict]:
     """Получение списка рефералов с их профилями"""
     async with aiosqlite.connect(DATABASE_PATH) as db:
-        # Получаем общий заработок с процентов (без бонусов за приглашение)
-        async with db.execute("""
-            SELECT COALESCE(referrals_earned, 0) FROM users WHERE user_id = ?
-        """, (user_id,)) as cursor:
-            total_earned_result = await cursor.fetchone()
-            total_percentage_earned = total_earned_result[0] if total_earned_result else 0
-        
         async with db.execute("""
             SELECT 
                 u.user_id,
@@ -795,16 +799,22 @@ async def get_referrals_list(user_id: int) -> List[Dict]:
             rows = await cursor.fetchall()
             
             result = []
-            referrals_count = len(rows)
-            # Распределяем процентный заработок равномерно между рефералами
-            avg_percentage_per_referral = total_percentage_earned // referrals_count if referrals_count > 0 else 0
-            
             for row in rows:
-                # Заработок = 1000 (бонус за приглашение) + средний процент
-                earned_from_this = 1000 + avg_percentage_per_referral
+                referred_user_id = row[0]
+                
+                # Получаем сумму заработка с этого конкретного реферала
+                async with db.execute("""
+                    SELECT COALESCE(SUM(amount), 0) FROM referral_earnings
+                    WHERE referrer_id = ? AND referred_id = ?
+                """, (user_id, referred_user_id)) as cursor2:
+                    earnings_result = await cursor2.fetchone()
+                    percentage_earned = earnings_result[0] if earnings_result else 0
+                
+                # Заработок = 1000 (бонус за приглашение) + процент от заработка
+                earned_from_this = 1000 + percentage_earned
                 
                 result.append({
-                    "user_id": row[0],
+                    "user_id": referred_user_id,
                     "username": row[1] or row[2] or "Игрок",
                     "first_name": row[2] or "Игрок",
                     "level": row[3] or 1,
