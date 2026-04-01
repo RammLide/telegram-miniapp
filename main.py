@@ -516,7 +516,8 @@ async def button_admin_logs(message: Message):
         "DELETE_USER": "Удаление",
         "ADD_BALANCE": "Добавление баланса",
         "SUB_BALANCE": "Снятие баланса",
-        "SET_BALANCE": "Установка баланса"
+        "SET_BALANCE": "Установка баланса",
+        "BROADCAST": "Рассылка"
     }
     
     for i, log in enumerate(logs, 1):
@@ -526,7 +527,8 @@ async def button_admin_logs(message: Message):
             "DELETE_USER": "🗑️",
             "ADD_BALANCE": "💰",
             "SUB_BALANCE": "💸",
-            "SET_BALANCE": "💵"
+            "SET_BALANCE": "💵",
+            "BROADCAST": "📢"
         }.get(log['action'], "📌")
         
         action_name = action_names.get(log['action'], log['action'])
@@ -714,8 +716,13 @@ async def callback_broadcast_confirm(callback: CallbackQuery, state: FSMContext)
     await progress_msg.edit_text(final_text, parse_mode="HTML")
     await callback.message.answer("🏠 Возвращаемся в админ панель.", reply_markup=get_admin_keyboard())
     
-    # Логируем рассылку
-    await log_event("broadcast", f"Успешно: {success_count}, Ошибок: {failed_count}")
+    # Логируем рассылку в логах админов
+    await log_admin_action(
+        callback.from_user.id, 
+        "BROADCAST", 
+        None, 
+        f"Отправлено: {success_count}/{total_users}, Ошибок: {failed_count}"
+    )
     
     await state.clear()
 
