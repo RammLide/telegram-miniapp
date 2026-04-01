@@ -6,11 +6,54 @@ tg.enableClosingConfirmation();
 // API URL
 const API_URL = window.location.origin;
 
+// Функция для безопасного получения данных пользователя из Telegram
+function getTelegramUser() {
+    // Проверяем разные способы получения данных
+    if (tg.initDataUnsafe?.user?.id) {
+        console.log('✅ User data from initDataUnsafe:', tg.initDataUnsafe.user);
+        return {
+            id: tg.initDataUnsafe.user.id,
+            firstName: tg.initDataUnsafe.user.first_name || 'Игрок',
+            username: tg.initDataUnsafe.user.username || tg.initDataUnsafe.user.first_name || 'Игрок'
+        };
+    }
+    
+    // Fallback: пытаемся распарсить initData
+    if (tg.initData) {
+        console.log('⚠️ Trying to parse initData:', tg.initData);
+        try {
+            const params = new URLSearchParams(tg.initData);
+            const userParam = params.get('user');
+            if (userParam) {
+                const user = JSON.parse(decodeURIComponent(userParam));
+                console.log('✅ User data from initData:', user);
+                return {
+                    id: user.id,
+                    firstName: user.first_name || 'Игрок',
+                    username: user.username || user.first_name || 'Игрок'
+                };
+            }
+        } catch (e) {
+            console.error('❌ Error parsing initData:', e);
+        }
+    }
+    
+    console.warn('⚠️ No user data available, using default');
+    return {
+        id: 12345,
+        firstName: 'Игрок',
+        username: 'Игрок'
+    };
+}
+
+// Получаем данные пользователя
+const telegramUser = getTelegramUser();
+
 // Данные пользователя
 let userData = {
-    userId: tg.initDataUnsafe?.user?.id || 12345,
-    username: 'Загрузка...',
-    firstName: tg.initDataUnsafe?.user?.first_name || 'Игрок',
+    userId: telegramUser.id,
+    username: telegramUser.username,
+    firstName: telegramUser.firstName,
     balance: 1000,
     level: 1,
     exp: 0,
@@ -203,12 +246,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function initApp() {
     showLoading();
     
-    // Сначала устанавливаем имя из Telegram
-    if (tg.initDataUnsafe?.user) {
-        userData.username = tg.initDataUnsafe.user.first_name || tg.initDataUnsafe.user.username || 'Игрок';
-        userData.firstName = tg.initDataUnsafe.user.first_name || 'Игрок';
-        userData.userId = tg.initDataUnsafe.user.id || 12345;
-    }
+    // Логируем данные для отладки
+    console.log('🚀 Initializing app...');
+    console.log('👤 User ID:', userData.userId);
+    console.log('👤 Username:', userData.username);
+    console.log('👤 First Name:', userData.firstName);
+    console.log('📱 Telegram initDataUnsafe:', tg.initDataUnsafe);
+    console.log('📱 Telegram initData:', tg.initData);
     
     // Обновляем UI с начальными данными
     updateUI();
@@ -382,12 +426,12 @@ async function loadGameData() {
             
             if (userInfoResponse.ok) {
                 const userInfo = await userInfoResponse.json();
-                userData.username = userInfo.first_name || userInfo.username || userData.firstName;
+                console.log('👤 User info from server:', userInfo);
+                userData.username = userInfo.first_name || userInfo.username || userData.username;
                 userData.firstName = userInfo.first_name || userData.firstName;
             } else {
-                // Если не удалось получить с сервера, используем данные из Telegram
-                userData.username = tg.initDataUnsafe?.user?.first_name || tg.initDataUnsafe?.user?.username || userData.firstName;
-                userData.firstName = tg.initDataUnsafe?.user?.first_name || userData.firstName;
+                console.warn('⚠️ Failed to get user info from server, using Telegram data');
+                // Данные уже установлены из getTelegramUser()
             }
             
             // Получаем рейтинг пользователя
@@ -412,11 +456,8 @@ async function loadGameData() {
         console.error('❌ Error loading game data:', error);
         // Загружаем из localStorage как fallback
         loadFromLocalStorage();
-        // Устанавливаем имя из Telegram если не загрузилось
-        if (userData.username === 'Загрузка...') {
-            userData.username = tg.initDataUnsafe?.user?.first_name || tg.initDataUnsafe?.user?.username || 'Игрок';
-            userData.firstName = tg.initDataUnsafe?.user?.first_name || 'Игрок';
-        }
+        // Данные пользователя уже установлены из getTelegramUser()
+        console.log('✅ Using Telegram user data:', userData.username, userData.userId);
     }
 }
 
