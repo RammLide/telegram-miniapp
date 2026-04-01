@@ -814,7 +814,7 @@ main {
     position: absolute;
     left: 50%;
     top: 50%;
-    transform: translate(-50%, -50%);
+    transform: translate(0, -50%);
     transition: transform 3s cubic-bezier(0.25, 0.1, 0.25, 1);
     will-change: transform;
 }
@@ -948,13 +948,18 @@ main {
 /* Для модального окна достижений разрешаем прокрутку и убираем смещение */
 .achievements-modal-content {
     overflow-y: auto;
-    padding: 30px 10px 30px 30px;
+    padding: 30px 20px;
 }
 
 .achievements-modal-content .achievements-grid {
-    padding-right: 15px;
-    margin: 0;
+    padding-right: 0;
+    margin: 0 auto;
     max-width: 100%;
+    gap: 12px;
+}
+
+.achievements-modal-content .achievement-card {
+    width: 100%;
 }
 
 @keyframes modalSlideIn {

@@ -941,7 +941,7 @@ function startRouletteAnimation(items, winItem, callback) {
     // Полностью сбрасываем анимацию
     rouletteItems.innerHTML = '';
     rouletteItems.style.transition = 'none';
-    rouletteItems.style.transform = 'translate(-50%, -50%)';
+    rouletteItems.style.transform = 'translate(0, -50%)';
     
     // Создаем массив предметов для рулетки
     const rouletteArray = [];
@@ -986,10 +986,13 @@ function startRouletteAnimation(items, winItem, callback) {
     setTimeout(() => {
         // Ширина предмета: 100px (min-width) + 5px (margin-left) + 5px (margin-right) = 110px
         const itemWidth = 110;
-        // Рассчитываем смещение: позиция предмета * ширину + половину ширины для центрирования
-        const offset = (winPosition * itemWidth) + (itemWidth / 2);
+        // Центр экрана находится в 50% от ширины контейнера
+        // Нужно сместить ленту влево так, чтобы выигрышный предмет (позиция 40) оказался в центре
+        // Смещение = позиция * ширина предмета
+        const offset = winPosition * itemWidth;
         console.log('📏 Offset:', offset, 'px');
-        rouletteItems.style.transform = `translate(calc(-50% - ${offset}px), -50%)`;
+        // Смещаем влево на offset пикселей, и центрируем по вертикали
+        rouletteItems.style.transform = `translate(-${offset}px, -50%)`;
     }, 100);
     
     // Вызываем callback после завершения анимации
