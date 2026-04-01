@@ -59,8 +59,7 @@ function getTelegramUser() {
     console.error('❌ CRITICAL: No user data available! App may not work correctly!');
     console.error('❌ Please open the app from the bot menu button or restart the bot');
     
-    // Показываем предупреждение пользователю
-    alert('⚠️ Ошибка загрузки данных!\n\nПожалуйста, откройте приложение через кнопку меню бота (слева внизу).');
+    // НЕ показываем alert здесь - он будет обработан позже
     
     return {
         id: 12345,
@@ -71,6 +70,31 @@ function getTelegramUser() {
 
 // Получаем данные пользователя
 const telegramUser = getTelegramUser();
+
+// КРИТИЧЕСКАЯ ПРОВЕРКА: если ID = 12345, не даем приложению работать
+if (telegramUser.id === 12345) {
+    console.error('❌ CRITICAL ERROR: Invalid user ID detected!');
+    document.addEventListener('DOMContentLoaded', () => {
+        document.body.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; padding: 20px; text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div style="background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); max-width: 400px;">
+                    <div style="font-size: 60px; margin-bottom: 20px;">⚠️</div>
+                    <h2 style="color: #333; margin-bottom: 15px;">Ошибка загрузки</h2>
+                    <p style="color: #666; margin-bottom: 20px; line-height: 1.6;">
+                        Не удалось получить данные пользователя из Telegram.
+                    </p>
+                    <p style="color: #666; margin-bottom: 25px; line-height: 1.6;">
+                        <strong>Пожалуйста, откройте приложение через кнопку меню бота</strong> (три полоски слева внизу в чате с ботом).
+                    </p>
+                    <button onclick="window.Telegram.WebApp.close()" style="background: #667eea; color: white; border: none; padding: 15px 30px; border-radius: 10px; font-size: 16px; cursor: pointer; font-weight: bold;">
+                        Закрыть
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    throw new Error('Invalid user ID - stopping app initialization');
+}
 
 // Данные пользователя
 let userData = {
