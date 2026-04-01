@@ -943,16 +943,24 @@ function startRouletteAnimation(items, winItem, callback) {
     rouletteItems.style.transition = 'none';
     rouletteItems.style.transform = 'translate(-50%, -50%)';
     
-    // Создаем массив предметов для рулетки (80 предметов вместо 50)
+    // Создаем массив предметов для рулетки
     const rouletteArray = [];
-    for (let i = 0; i < 80; i++) {
+    
+    // Добавляем 40 случайных предметов ДО выигрышного
+    for (let i = 0; i < 40; i++) {
         const randomItem = items[Math.floor(Math.random() * items.length)];
         rouletteArray.push(randomItem);
     }
     
-    // Вставляем выигрышный предмет ближе к центру (позиция 40)
+    // Вставляем выигрышный предмет в позицию 40
     const winPosition = 40;
     rouletteArray[winPosition] = winItem;
+    
+    // Добавляем еще 40 случайных предметов ПОСЛЕ выигрышного
+    for (let i = 0; i < 40; i++) {
+        const randomItem = items[Math.floor(Math.random() * items.length)];
+        rouletteArray.push(randomItem);
+    }
     
     // Отображаем предметы
     rouletteArray.forEach(item => {
