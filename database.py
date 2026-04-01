@@ -769,6 +769,13 @@ async def get_referrals_earned(user_id: int) -> int:
 async def get_referrals_list(user_id: int) -> List[Dict]:
     """Получение списка рефералов с их профилями"""
     async with aiosqlite.connect(DATABASE_PATH) as db:
+        # Получаем общий заработок с процентов (без бонусов за приглашение)
+        async with db.execute("""
+            SELECT COALESCE(referrals_earned, 0) FROM users WHERE user_id = ?
+        """, (user_id,)) as cursor:
+            total_earned_result = await cursor.fetchone()
+            total_percentage_earned = total_earned_result[0] if total_earned_result else 0
+        
         async with db.execute("""
             SELECT 
                 u.user_id,
@@ -786,8 +793,17 @@ async def get_referrals_list(user_id: int) -> List[Dict]:
             ORDER BY r.created_at DESC
         """, (user_id,)) as cursor:
             rows = await cursor.fetchall()
-            return [
-                {
+            
+            result = []
+            referrals_count = len(rows)
+            # Распределяем процентный заработок равномерно между рефералами
+            avg_percentage_per_referral = total_percentage_earned // referrals_count if referrals_count > 0 else 0
+            
+            for row in rows:
+                # Заработок = 1000 (бонус за приглашение) + средний процент
+                earned_from_this = 1000 + avg_percentage_per_referral
+                
+                result.append({
                     "user_id": row[0],
                     "username": row[1] or row[2] or "Игрок",
                     "first_name": row[2] or "Игрок",
@@ -795,10 +811,10 @@ async def get_referrals_list(user_id: int) -> List[Dict]:
                     "balance": row[4] or 0,
                     "created_at": row[5],
                     "bonus_claimed": bool(row[6]),
-                    "earned": 1000 if row[6] else 0  # Заработано с этого реферала
-                }
-                for row in rows
-            ]
+                    "earned": earned_from_this
+                })
+            
+            return result
 
 
 # ==================== ФУНКЦИИ ДЛЯ РЕЙТИНГА ====================

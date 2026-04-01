@@ -303,10 +303,23 @@ async def save_game_data_endpoint(request):
             await update_user_game_data(user_id, data['game_data'])
             logger.info(f"✅ Game data saved for user {user_id}")
         
-        # Сохраняем баланс
+        # Сохраняем баланс и начисляем процент реферу
         if 'balance' in data:
-            await update_user_balance(user_id, data['balance'])
-            logger.info(f"✅ Balance saved for user {user_id}: {data['balance']}")
+            # Получаем текущий баланс
+            old_balance = await get_user_balance(user_id)
+            new_balance = data['balance']
+            
+            # Если баланс увеличился, начисляем процент реферу
+            if new_balance > old_balance:
+                balance_diff = new_balance - old_balance
+                logger.info(f"💰 Balance increased by {balance_diff} for user {user_id}")
+                
+                # Начисляем процент реферу
+                from database import give_referrer_percentage
+                await give_referrer_percentage(user_id, balance_diff)
+            
+            await update_user_balance(user_id, new_balance)
+            logger.info(f"✅ Balance saved for user {user_id}: {new_balance}")
         
         # Сохраняем улучшения
         if 'upgrades' in data:
