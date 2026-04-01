@@ -27,7 +27,10 @@ from keyboards import (
     get_pagination_keyboard,
     get_admin_management_keyboard,
     get_admin_list_keyboard,
-    get_stats_keyboard
+    get_stats_keyboard,
+    get_users_list_keyboard,
+    get_user_management_keyboard,
+    get_balance_edit_keyboard
 )
 
 # Загрузка переменных окружения
@@ -293,7 +296,7 @@ async def button_broadcast(message: Message, state: FSMContext):
 
 @dp.message(F.text == "👥 Список пользователей")
 async def button_users_list(message: Message):
-    """Список пользователей с пагинацией"""
+    """Список пользователей с кнопками"""
     if not await is_admin(message.from_user.id):
         await message.answer("❌ У вас нет доступа к этой функции.")
         return
@@ -312,26 +315,23 @@ async def button_users_list(message: Message):
     
     start_idx = (page - 1) * per_page
     end_idx = start_idx + per_page
-    page_users = users[start_idx:end_idx]
+    page_user_ids = users[start_idx:end_idx]
+    
+    # Получаем информацию о пользователях
+    page_users = []
+    for user_id in page_user_ids:
+        user_info = await get_user_info(user_id)
+        if user_info:
+            page_users.append(user_info)
     
     users_text = (
         f"👥 <b>Список пользователей</b>\n"
         f"📄 Страница {page}/{total_pages}\n"
         f"👤 Всего: {total_users}\n\n"
+        f"Выберите пользователя для управления:"
     )
     
-    for idx, user_id in enumerate(page_users, start=start_idx + 1):
-        user_info = await get_user_info(user_id)
-        if user_info:
-            username = f"@{user_info['username']}" if user_info.get('username') else user_info.get('first_name', 'Без имени')
-            users_text += f"{idx}. {username} <code>({user_id})</code>\n"
-        else:
-            users_text += f"{idx}. ID: <code>{user_id}</code>\n"
-    
-    if total_pages > 1:
-        await message.answer(users_text, reply_markup=get_pagination_keyboard(page, total_pages), parse_mode="HTML")
-    else:
-        await message.answer(users_text, reply_markup=get_back_to_admin_keyboard(), parse_mode="HTML")
+    await message.answer(users_text, reply_markup=get_users_list_keyboard(page_users, page, total_pages), parse_mode="HTML")
 
 
 @dp.message(F.text == "⚙️ Настройки")
@@ -641,25 +641,25 @@ async def callback_users_page(callback: CallbackQuery):
     
     start_idx = (page - 1) * per_page
     end_idx = start_idx + per_page
-    page_users = users[start_idx:end_idx]
+    page_user_ids = users[start_idx:end_idx]
+    
+    # Получаем информацию о пользователях
+    page_users = []
+    for user_id in page_user_ids:
+        user_info = await get_user_info(user_id)
+        if user_info:
+            page_users.append(user_info)
     
     users_text = (
         f"👥 <b>Список пользователей</b>\n"
         f"📄 Страница {page}/{total_pages}\n"
         f"👤 Всего: {total_users}\n\n"
+        f"Выберите пользователя для управления:"
     )
-    
-    for idx, user_id in enumerate(page_users, start=start_idx + 1):
-        user_info = await get_user_info(user_id)
-        if user_info:
-            username = f"@{user_info['username']}" if user_info.get('username') else user_info.get('first_name', 'Без имени')
-            users_text += f"{idx}. {username} <code>({user_id})</code>\n"
-        else:
-            users_text += f"{idx}. ID: <code>{user_id}</code>\n"
     
     await callback.message.edit_text(
         users_text, 
-        reply_markup=get_pagination_keyboard(page, total_pages),
+        reply_markup=get_users_list_keyboard(page_users, page, total_pages),
         parse_mode="HTML"
     )
 
@@ -918,6 +918,202 @@ async def callback_refresh_stats(callback: CallbackQuery):
     )
     
     await callback.message.edit_text(stats_text, reply_markup=get_stats_keyboard(), parse_mode="HTML")
+
+
+# ==================== УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ ====================
+
+@dp.callback_query(F.data.startswith("user_info_"))
+async def callback_user_info(callback: CallbackQuery):
+    """Показать информацию о пользователе"""
+    await callback.answer()
+    
+    user_id = int(callback.data.split("_")[-1])
+    user_info = await get_user_info(user_id)
+    
+    if not user_info:
+        await callback.message.edit_text("❌ Пользователь не найден")
+        return
+    
+    # Получаем баланс и игровые данные
+    from database import get_user_balance, get_user_game_data
+    balance = await get_user_balance(user_id)
+    game_data = await get_user_game_data(user_id)
+    
+    name = user_info.get('first_name', 'Без имени')
+    username = f"@{user_info['username']}" if user_info.get('username') else "Нет username"
+    created_at = user_info.get('created_at', 'Неизвестно')
+    
+    level = game_data.get('level', 1) if game_data else 1
+    total_clicks = game_data.get('total_clicks', 0) if game_data else 0
+    
+    info_text = (
+        f"👤 <b>Информация о пользователе</b>\n\n"
+        f"📛 Имя: {name}\n"
+        f"🔗 Username: {username}\n"
+        f"🆔 ID: <code>{user_id}</code>\n"
+        f"📅 Регистрация: {created_at[:10] if created_at != 'Неизвестно' else created_at}\n\n"
+        f"💰 Баланс: <b>{balance}</b> монет\n"
+        f"⭐ Уровень: <b>{level}</b>\n"
+        f"👆 Всего кликов: <b>{total_clicks}</b>\n"
+    )
+    
+    await callback.message.edit_text(info_text, reply_markup=get_user_management_keyboard(user_id), parse_mode="HTML")
+
+
+@dp.callback_query(F.data.startswith("edit_balance_"))
+async def callback_edit_balance(callback: CallbackQuery):
+    """Открыть меню изменения баланса"""
+    await callback.answer()
+    
+    user_id = int(callback.data.split("_")[-1])
+    user_info = await get_user_info(user_id)
+    
+    if not user_info:
+        await callback.message.edit_text("❌ Пользователь не найден")
+        return
+    
+    from database import get_user_balance
+    balance = await get_user_balance(user_id)
+    
+    name = user_info.get('first_name', 'Без имени')
+    
+    balance_text = (
+        f"💰 <b>Изменение баланса</b>\n\n"
+        f"👤 Пользователь: {name}\n"
+        f"💵 Текущий баланс: <b>{balance}</b> монет\n\n"
+        f"Выберите действие:"
+    )
+    
+    await callback.message.edit_text(balance_text, reply_markup=get_balance_edit_keyboard(user_id), parse_mode="HTML")
+
+
+@dp.callback_query(F.data.startswith("add_balance_"))
+async def callback_add_balance(callback: CallbackQuery):
+    """Добавить баланс пользователю"""
+    await callback.answer()
+    
+    parts = callback.data.split("_")
+    user_id = int(parts[2])
+    amount = int(parts[3])
+    
+    from database import add_balance, get_user_balance
+    await add_balance(user_id, amount)
+    new_balance = await get_user_balance(user_id)
+    
+    user_info = await get_user_info(user_id)
+    name = user_info.get('first_name', 'Без имени') if user_info else 'Неизвестный'
+    
+    balance_text = (
+        f"✅ <b>Баланс изменен!</b>\n\n"
+        f"👤 Пользователь: {name}\n"
+        f"➕ Добавлено: <b>+{amount}</b> монет\n"
+        f"💵 Новый баланс: <b>{new_balance}</b> монет"
+    )
+    
+    await callback.message.edit_text(balance_text, reply_markup=get_balance_edit_keyboard(user_id), parse_mode="HTML")
+    
+    # Уведомляем пользователя
+    try:
+        await bot.send_message(
+            user_id,
+            f"💰 <b>Ваш баланс пополнен!</b>\n\n"
+            f"Вам начислено <b>+{amount}</b> монет от администратора.\n"
+            f"Новый баланс: <b>{new_balance}</b> монет",
+            parse_mode="HTML"
+        )
+    except:
+        pass
+
+
+@dp.callback_query(F.data.startswith("sub_balance_"))
+async def callback_sub_balance(callback: CallbackQuery):
+    """Вычесть баланс у пользователя"""
+    await callback.answer()
+    
+    parts = callback.data.split("_")
+    user_id = int(parts[2])
+    amount = int(parts[3])
+    
+    from database import subtract_balance, get_user_balance
+    success = await subtract_balance(user_id, amount)
+    new_balance = await get_user_balance(user_id)
+    
+    user_info = await get_user_info(user_id)
+    name = user_info.get('first_name', 'Без имени') if user_info else 'Неизвестный'
+    
+    if success:
+        balance_text = (
+            f"✅ <b>Баланс изменен!</b>\n\n"
+            f"👤 Пользователь: {name}\n"
+            f"➖ Вычтено: <b>-{amount}</b> монет\n"
+            f"💵 Новый баланс: <b>{new_balance}</b> монет"
+        )
+    else:
+        balance_text = (
+            f"⚠️ <b>Недостаточно средств!</b>\n\n"
+            f"👤 Пользователь: {name}\n"
+            f"💵 Текущий баланс: <b>{new_balance}</b> монет\n"
+            f"❌ Невозможно вычесть {amount} монет"
+        )
+    
+    await callback.message.edit_text(balance_text, reply_markup=get_balance_edit_keyboard(user_id), parse_mode="HTML")
+
+
+@dp.callback_query(F.data.startswith("set_balance_"))
+async def callback_set_balance(callback: CallbackQuery):
+    """Установить баланс пользователю"""
+    await callback.answer()
+    
+    parts = callback.data.split("_")
+    user_id = int(parts[2])
+    amount = int(parts[3])
+    
+    from database import update_user_balance, get_user_balance
+    await update_user_balance(user_id, amount)
+    new_balance = await get_user_balance(user_id)
+    
+    user_info = await get_user_info(user_id)
+    name = user_info.get('first_name', 'Без имени') if user_info else 'Неизвестный'
+    
+    balance_text = (
+        f"✅ <b>Баланс установлен!</b>\n\n"
+        f"👤 Пользователь: {name}\n"
+        f"💵 Новый баланс: <b>{new_balance}</b> монет"
+    )
+    
+    await callback.message.edit_text(balance_text, reply_markup=get_balance_edit_keyboard(user_id), parse_mode="HTML")
+
+
+@dp.callback_query(F.data == "back_to_users_list")
+async def callback_back_to_users_list(callback: CallbackQuery):
+    """Вернуться к списку пользователей"""
+    await callback.answer()
+    
+    users = await get_all_users()
+    total_users = len(users)
+    
+    page = 1
+    per_page = 10
+    total_pages = (total_users + per_page - 1) // per_page
+    
+    start_idx = (page - 1) * per_page
+    end_idx = start_idx + per_page
+    page_user_ids = users[start_idx:end_idx]
+    
+    page_users = []
+    for user_id in page_user_ids:
+        user_info = await get_user_info(user_id)
+        if user_info:
+            page_users.append(user_info)
+    
+    users_text = (
+        f"👥 <b>Список пользователей</b>\n"
+        f"📄 Страница {page}/{total_pages}\n"
+        f"👤 Всего: {total_users}\n\n"
+        f"Выберите пользователя для управления:"
+    )
+    
+    await callback.message.edit_text(users_text, reply_markup=get_users_list_keyboard(page_users, page, total_pages), parse_mode="HTML")
 
 
 # ==================== ОБРАБОТЧИК ОСТАЛЬНЫХ СООБЩЕНИЙ ====================

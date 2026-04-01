@@ -301,6 +301,9 @@ async function initApp() {
     console.log('📱 Telegram initDataUnsafe:', tg.initDataUnsafe);
     console.log('📱 Telegram initData:', tg.initData);
     
+    // Загружаем аватарку пользователя
+    loadUserAvatar();
+    
     // Обновляем UI с начальными данными
     updateUI();
     
@@ -378,6 +381,34 @@ async function initApp() {
     });
     
     hideLoading();
+}
+
+// Загрузка аватарки пользователя
+function loadUserAvatar() {
+    const avatarEmoji = document.getElementById('avatarEmoji');
+    const avatarImage = document.getElementById('avatarImage');
+    
+    // Пытаемся получить фото профиля из Telegram
+    if (tg.initDataUnsafe?.user?.photo_url) {
+        console.log('📸 Loading user avatar from Telegram:', tg.initDataUnsafe.user.photo_url);
+        avatarImage.src = tg.initDataUnsafe.user.photo_url;
+        avatarImage.onload = () => {
+            avatarEmoji.style.display = 'none';
+            avatarImage.style.display = 'block';
+            console.log('✅ Avatar loaded successfully');
+        };
+        avatarImage.onerror = () => {
+            console.warn('⚠️ Failed to load avatar, using emoji');
+            avatarEmoji.style.display = 'flex';
+            avatarImage.style.display = 'none';
+        };
+    } else {
+        console.log('ℹ️ No avatar URL available, using emoji');
+        // Используем первую букву имени как аватарку
+        if (userData.firstName) {
+            avatarEmoji.textContent = userData.firstName.charAt(0).toUpperCase();
+        }
+    }
 }
 
 function setupEventListeners() {
@@ -906,8 +937,11 @@ function openCase() {
 
 function startRouletteAnimation(items, winItem, callback) {
     const rouletteItems = document.getElementById('rouletteItems');
+    
+    // Полностью сбрасываем анимацию
     rouletteItems.innerHTML = '';
-    rouletteItems.style.transform = 'translateX(0)';
+    rouletteItems.style.transition = 'none';
+    rouletteItems.style.transform = 'translate(-50%, -50%)';
     
     // Создаем массив предметов для рулетки (50 предметов)
     const rouletteArray = [];
@@ -930,11 +964,17 @@ function startRouletteAnimation(items, winItem, callback) {
         rouletteItems.appendChild(itemEl);
     });
     
+    // Принудительный reflow для сброса анимации
+    void rouletteItems.offsetWidth;
+    
+    // Включаем transition обратно
+    rouletteItems.style.transition = 'transform 3s cubic-bezier(0.25, 0.1, 0.25, 1)';
+    
     // Запускаем анимацию
     setTimeout(() => {
         const itemWidth = 110; // 100px + 10px margin
         const offset = 45 * itemWidth; // Позиция выигрышного предмета
-        rouletteItems.style.transform = `translateX(-${offset}px)`;
+        rouletteItems.style.transform = `translate(calc(-50% - ${offset}px), -50%)`;
     }, 100);
     
     // Вызываем callback после завершения анимации

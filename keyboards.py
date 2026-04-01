@@ -133,3 +133,77 @@ def get_stats_keyboard() -> InlineKeyboardMarkup:
         ]
     )
     return keyboard
+
+
+def get_users_list_keyboard(users: list, page: int, total_pages: int) -> InlineKeyboardMarkup:
+    """Клавиатура со списком пользователей (кнопки)"""
+    buttons = []
+    
+    # Добавляем кнопки пользователей
+    for user in users:
+        name = user.get('first_name', 'Без имени')
+        username = f"@{user['username']}" if user.get('username') else ""
+        label = f"{name} {username}".strip()
+        buttons.append([InlineKeyboardButton(
+            text=label[:30],  # Ограничиваем длину
+            callback_data=f"user_info_{user['user_id']}"
+        )])
+    
+    # Навигация
+    nav_buttons = []
+    if page > 1:
+        nav_buttons.append(InlineKeyboardButton(text="◀️ Назад", callback_data=f"users_page_{page-1}"))
+    
+    nav_buttons.append(InlineKeyboardButton(text=f"{page}/{total_pages}", callback_data="current_page"))
+    
+    if page < total_pages:
+        nav_buttons.append(InlineKeyboardButton(text="Вперед ▶️", callback_data=f"users_page_{page+1}"))
+    
+    if nav_buttons:
+        buttons.append(nav_buttons)
+    
+    buttons.append([InlineKeyboardButton(text="◀️ Назад в админ панель", callback_data="back_to_admin")])
+    
+    keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
+    return keyboard
+
+
+def get_user_management_keyboard(user_id: int) -> InlineKeyboardMarkup:
+    """Клавиатура управления пользователем"""
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="💰 Изменить баланс", callback_data=f"edit_balance_{user_id}")],
+            [InlineKeyboardButton(text="📊 Показать статистику", callback_data=f"user_stats_{user_id}")],
+            [InlineKeyboardButton(text="◀️ Назад к списку", callback_data="back_to_users_list")]
+        ]
+    )
+    return keyboard
+
+
+def get_balance_edit_keyboard(user_id: int) -> InlineKeyboardMarkup:
+    """Клавиатура для изменения баланса"""
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="+100", callback_data=f"add_balance_{user_id}_100"),
+                InlineKeyboardButton(text="+500", callback_data=f"add_balance_{user_id}_500"),
+                InlineKeyboardButton(text="+1000", callback_data=f"add_balance_{user_id}_1000")
+            ],
+            [
+                InlineKeyboardButton(text="+5000", callback_data=f"add_balance_{user_id}_5000"),
+                InlineKeyboardButton(text="+10000", callback_data=f"add_balance_{user_id}_10000"),
+                InlineKeyboardButton(text="+50000", callback_data=f"add_balance_{user_id}_50000")
+            ],
+            [
+                InlineKeyboardButton(text="-100", callback_data=f"sub_balance_{user_id}_100"),
+                InlineKeyboardButton(text="-500", callback_data=f"sub_balance_{user_id}_500"),
+                InlineKeyboardButton(text="-1000", callback_data=f"sub_balance_{user_id}_1000")
+            ],
+            [
+                InlineKeyboardButton(text="🗑️ Обнулить", callback_data=f"set_balance_{user_id}_0"),
+                InlineKeyboardButton(text="💎 Установить", callback_data=f"custom_balance_{user_id}")
+            ],
+            [InlineKeyboardButton(text="◀️ Назад", callback_data=f"user_info_{user_id}")]
+        ]
+    )
+    return keyboard

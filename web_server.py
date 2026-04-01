@@ -80,6 +80,39 @@ CASES = [
             {"name": "Легендарный щит", "rarity": "legendary", "value": 3000, "image": "🛡️", "chance": 20},
             {"name": "Единорог", "rarity": "legendary", "value": 5000, "image": "🦄", "chance": 5}
         ]
+    },
+    {
+        "id": 5,
+        "name": "Алмазный кейс",
+        "price": 2000,
+        "items": [
+            {"name": "Сапфир", "rarity": "rare", "value": 800, "image": "🔷", "chance": 40},
+            {"name": "Топаз", "rarity": "epic", "value": 1800, "image": "🟨", "chance": 35},
+            {"name": "Трон", "rarity": "legendary", "value": 4500, "image": "🪑", "chance": 20},
+            {"name": "Грифон", "rarity": "legendary", "value": 8000, "image": "🦅", "chance": 5}
+        ]
+    },
+    {
+        "id": 6,
+        "name": "Мифический кейс",
+        "price": 5000,
+        "items": [
+            {"name": "Опал", "rarity": "epic", "value": 3000, "image": "🔮", "chance": 45},
+            {"name": "Скипетр", "rarity": "legendary", "value": 7000, "image": "👑", "chance": 30},
+            {"name": "Дракон-король", "rarity": "legendary", "value": 12000, "image": "🐲", "chance": 20},
+            {"name": "Экскалибур", "rarity": "legendary", "value": 20000, "image": "⚔️", "chance": 5}
+        ]
+    },
+    {
+        "id": 7,
+        "name": "Божественный кейс",
+        "price": 10000,
+        "items": [
+            {"name": "Нефрит", "rarity": "epic", "value": 6000, "image": "🟢", "chance": 45},
+            {"name": "Крылья ангела", "rarity": "legendary", "value": 15000, "image": "🪽", "chance": 30},
+            {"name": "Молот Тора", "rarity": "legendary", "value": 25000, "image": "🔨", "chance": 20},
+            {"name": "Корона богов", "rarity": "legendary", "value": 50000, "image": "👑", "chance": 5}
+        ]
     }
 ]
 
