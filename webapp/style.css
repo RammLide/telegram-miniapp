@@ -528,7 +528,6 @@ main {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
-    padding-right: 10px;
 }
 
 .achievement-card {
@@ -946,13 +945,15 @@ main {
     margin-bottom: 20px;
 }
 
-.modal-content > h2 {
-    margin-bottom: 20px;
-}
-
-/* Для модального окна достижений разрешаем прокрутку */
+/* Для модального окна достижений разрешаем прокрутку и убираем смещение */
 .achievements-modal-content {
     overflow-y: auto;
+    padding: 30px 20px;
+}
+
+.achievements-modal-content .achievements-grid {
+    padding-right: 0;
+    margin: 0 auto;
 }
 
 @keyframes modalSlideIn {

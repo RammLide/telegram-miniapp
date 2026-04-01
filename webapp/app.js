@@ -951,7 +951,8 @@ function startRouletteAnimation(items, winItem, callback) {
     }
     
     // Вставляем выигрышный предмет ближе к центру (позиция 40)
-    rouletteArray[40] = winItem;
+    const winPosition = 40;
+    rouletteArray[winPosition] = winItem;
     
     // Отображаем предметы
     rouletteArray.forEach(item => {
@@ -972,8 +973,10 @@ function startRouletteAnimation(items, winItem, callback) {
     
     // Запускаем анимацию
     setTimeout(() => {
-        const itemWidth = 110; // 100px + 10px margin
-        const offset = 40 * itemWidth; // Позиция выигрышного предмета
+        // Ширина предмета: 100px (min-width) + 5px (margin-left) + 5px (margin-right) = 110px
+        const itemWidth = 110;
+        // Рассчитываем смещение: позиция предмета * ширину + половину ширины для центрирования
+        const offset = (winPosition * itemWidth) + (itemWidth / 2);
         rouletteItems.style.transform = `translate(calc(-50% - ${offset}px), -50%)`;
     }, 100);
     
