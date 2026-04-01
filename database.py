@@ -2,10 +2,12 @@ import aiosqlite
 import logging
 from typing import List, Optional, Dict
 from datetime import datetime
+import os
 
 logger = logging.getLogger(__name__)
 
-DATABASE_PATH = "bot_users.db"
+DATABASE_PATH = os.getenv('DATABASE_PATH', 'bot_users.db')
+logger.info(f"💾 Using database path: {DATABASE_PATH}")
 
 
 async def init_db():
