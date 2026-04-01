@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -18,7 +18,7 @@ from database import (
     get_referral_code, get_user_by_referral_code, add_referral, claim_referral_bonus,
     get_bot_setting, set_bot_setting,
     ban_user, unban_user, is_user_banned, delete_user_completely,
-    log_admin_action, get_admin_logs
+    log_admin_action, get_admin_logs, search_users_by_username
 )
 from keyboards import (
     get_main_keyboard, 
@@ -73,6 +73,10 @@ class AdminStates(StatesGroup):
 class BanStates(StatesGroup):
     waiting_for_ban_reason = State()
     user_id_to_ban = State()
+
+
+class SearchStates(StatesGroup):
+    waiting_for_username = State()
 
 
 async def is_admin(user_id: int) -> bool:
@@ -353,10 +357,50 @@ async def button_settings(message: Message):
         f"🤖 Версия: <b>3.2 - Turbo Token</b>\n"
         f"📅 Дата запуска: <code>{datetime.now().strftime('%d.%m.%Y')}</code>\n"
         f"🎮 Тип: <b>Turbo Token Game Bot</b>\n\n"
-        "💡 Для изменения настроек отредактируйте файл конфигурации."
+        "💡 Используйте кнопки ниже для настройки бота."
     )
     
-    await message.answer(settings_text, parse_mode="HTML")
+    # Создаем клавиатуру с кнопками настроек
+    buttons = []
+    
+    # Кнопка изменения приветствия только для главного админа
+    if await is_super_admin(message.from_user.id):
+        buttons.append([InlineKeyboardButton(text="💬 Изменить приветствие", callback_data="change_welcome")])
+    
+    buttons.append([InlineKeyboardButton(text="◀️ Назад в админ панель", callback_data="back_to_admin")])
+    
+    keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
+    
+    await message.answer(settings_text, reply_markup=keyboard, parse_mode="HTML")
+
+
+@dp.callback_query(F.data == "change_welcome")
+async def callback_change_welcome(callback: CallbackQuery, state: FSMContext):
+    """Начать изменение приветственного сообщения"""
+    await callback.answer()
+    
+    if not await is_super_admin(callback.from_user.id):
+        await callback.message.answer("❌ Только главный администратор может изменять приветствие.")
+        return
+    
+    current_welcome = await get_bot_setting('welcome_message', 'Не установлено')
+    
+    change_text = (
+        "💬 <b>Изменение приветственного сообщения</b>\n\n"
+        "📝 Текущее приветствие:\n"
+        f"<code>{current_welcome[:300]}...</code>\n\n"
+        "Отправьте новое приветственное сообщение.\n\n"
+        "💡 Можете отправить:\n"
+        "• Текст (используйте <code>{first_name}</code> для имени)\n"
+        "• Фото с подписью\n"
+        "• Видео с подписью\n"
+        "• GIF с подписью\n"
+        "• Документ с подписью\n\n"
+        "❌ Для отмены нажмите кнопку ниже."
+    )
+    
+    await callback.message.answer(change_text, reply_markup=get_cancel_keyboard(), parse_mode="HTML")
+    await state.set_state(AdminStates.waiting_for_welcome_message)
 
 
 @dp.message(F.text == "💬 Изменить приветствие")
@@ -457,15 +501,25 @@ async def button_admin_logs(message: Message):
         await message.answer("❌ Только главный администратор может просматривать логи.")
         return
     
-    logs = await get_admin_logs(limit=20)
+    logs = await get_admin_logs(limit=30)
     
     if not logs:
         await message.answer("📝 Логи действий админов пусты.")
         return
     
-    logs_text = "📝 <b>Логи действий админов</b>\n\n"
+    logs_text = "📝 <b>Логи действий админов</b>\n"
+    logs_text += "━━━━━━━━━━━━━━━━━━━━\n\n"
     
-    for log in logs:
+    action_names = {
+        "BAN_USER": "Блокировка",
+        "UNBAN_USER": "Разблокировка",
+        "DELETE_USER": "Удаление",
+        "ADD_BALANCE": "Добавление баланса",
+        "SUB_BALANCE": "Снятие баланса",
+        "SET_BALANCE": "Установка баланса"
+    }
+    
+    for i, log in enumerate(logs, 1):
         action_emoji = {
             "BAN_USER": "🚫",
             "UNBAN_USER": "✅",
@@ -475,18 +529,22 @@ async def button_admin_logs(message: Message):
             "SET_BALANCE": "💵"
         }.get(log['action'], "📌")
         
-        logs_text += (
-            f"{action_emoji} <b>{log['action']}</b>\n"
-            f"👤 Админ: {log['admin_name']} (ID: {log['admin_id']})\n"
-        )
+        action_name = action_names.get(log['action'], log['action'])
+        
+        logs_text += f"<b>#{i}. {action_emoji} {action_name}</b>\n"
+        logs_text += f"👤 Админ: <code>{log['admin_name']}</code>\n"
         
         if log['target_user_id']:
-            logs_text += f"🎯 Цель: {log['target_name']} (ID: {log['target_user_id']})\n"
+            logs_text += f"🎯 Пользователь: <code>{log['target_name']}</code>\n"
         
         if log['details']:
-            logs_text += f"📄 Детали: {log['details']}\n"
+            details = log['details'][:50] + "..." if len(log['details']) > 50 else log['details']
+            logs_text += f"💬 {details}\n"
         
-        logs_text += f"🕐 {log['created_at'][:16]}\n\n"
+        # Форматируем дату
+        date_str = log['created_at'][:16].replace('T', ' ')
+        logs_text += f"🕐 {date_str}\n"
+        logs_text += "─────────────────\n\n"
     
     await message.answer(logs_text, parse_mode="HTML")
 
@@ -986,6 +1044,9 @@ async def callback_user_info(callback: CallbackQuery):
     balance = await get_user_balance(user_id)
     game_data = await get_user_game_data(user_id)
     
+    # Проверяем статус блокировки
+    is_banned, ban_reason = await is_user_banned(user_id)
+    
     name = user_info.get('first_name', 'Без имени')
     username = f"@{user_info['username']}" if user_info.get('username') else "Нет username"
     created_at = user_info.get('created_at', 'Неизвестно')
@@ -993,8 +1054,11 @@ async def callback_user_info(callback: CallbackQuery):
     level = game_data.get('level', 1) if game_data else 1
     total_clicks = game_data.get('total_clicks', 0) if game_data else 0
     
+    ban_status = f"🚫 <b>ЗАБЛОКИРОВАН</b>\nПричина: {ban_reason}\n\n" if is_banned else ""
+    
     info_text = (
         f"👤 <b>Информация о пользователе</b>\n\n"
+        f"{ban_status}"
         f"📛 Имя: {name}\n"
         f"🔗 Username: {username}\n"
         f"🆔 ID: <code>{user_id}</code>\n"
@@ -1004,7 +1068,7 @@ async def callback_user_info(callback: CallbackQuery):
         f"👆 Всего кликов: <b>{total_clicks}</b>\n"
     )
     
-    await callback.message.edit_text(info_text, reply_markup=get_user_management_keyboard(user_id), parse_mode="HTML")
+    await callback.message.edit_text(info_text, reply_markup=get_user_management_keyboard(user_id, is_banned), parse_mode="HTML")
 
 
 @dp.callback_query(F.data.startswith("edit_balance_"))
@@ -1251,11 +1315,27 @@ async def process_ban_reason(message: Message, state: FSMContext):
     except:
         pass
     
-    await message.answer(
-        f"✅ Пользователь <b>{name}</b> (ID: {user_id}) заблокирован.\n"
-        f"Причина: {reason}",
-        parse_mode="HTML"
+    # Показываем обновленную информацию о пользователе
+    balance = await get_user_balance(user_id)
+    game_data = await get_user_game_data(user_id)
+    username = f"@{user_info['username']}" if user_info.get('username') else "Нет username"
+    created_at = user_info.get('created_at', 'Неизвестно')
+    level = game_data.get('level', 1) if game_data else 1
+    total_clicks = game_data.get('total_clicks', 0) if game_data else 0
+    
+    info_text = (
+        f"👤 <b>Информация о пользователе</b>\n\n"
+        f"🚫 <b>ЗАБЛОКИРОВАН</b>\nПричина: {reason}\n\n"
+        f"📛 Имя: {name}\n"
+        f"🔗 Username: {username}\n"
+        f"🆔 ID: <code>{user_id}</code>\n"
+        f"📅 Регистрация: {created_at[:10] if created_at != 'Неизвестно' else created_at}\n\n"
+        f"💰 Баланс: <b>{balance}</b> монет\n"
+        f"⭐ Уровень: <b>{level}</b>\n"
+        f"👆 Всего кликов: <b>{total_clicks}</b>\n"
     )
+    
+    await message.answer(info_text, reply_markup=get_user_management_keyboard(user_id, is_banned=True), parse_mode="HTML")
     
     await state.clear()
 
@@ -1294,10 +1374,26 @@ async def callback_unban_user(callback: CallbackQuery):
     except:
         pass
     
-    await callback.message.answer(
-        f"✅ Пользователь <b>{name}</b> (ID: {user_id}) разблокирован.",
-        parse_mode="HTML"
+    # Показываем обновленную информацию о пользователе
+    balance = await get_user_balance(user_id)
+    game_data = await get_user_game_data(user_id)
+    username = f"@{user_info['username']}" if user_info.get('username') else "Нет username"
+    created_at = user_info.get('created_at', 'Неизвестно')
+    level = game_data.get('level', 1) if game_data else 1
+    total_clicks = game_data.get('total_clicks', 0) if game_data else 0
+    
+    info_text = (
+        f"👤 <b>Информация о пользователе</b>\n\n"
+        f"📛 Имя: {name}\n"
+        f"🔗 Username: {username}\n"
+        f"🆔 ID: <code>{user_id}</code>\n"
+        f"📅 Регистрация: {created_at[:10] if created_at != 'Неизвестно' else created_at}\n\n"
+        f"💰 Баланс: <b>{balance}</b> монет\n"
+        f"⭐ Уровень: <b>{level}</b>\n"
+        f"👆 Всего кликов: <b>{total_clicks}</b>\n"
     )
+    
+    await callback.message.edit_text(info_text, reply_markup=get_user_management_keyboard(user_id, is_banned=False), parse_mode="HTML")
 
 
 @dp.callback_query(F.data.startswith("delete_user_"))
@@ -1362,6 +1458,69 @@ async def callback_back_to_users_list(callback: CallbackQuery):
     )
     
     await callback.message.edit_text(users_text, reply_markup=get_users_list_keyboard(page_users, page, total_pages), parse_mode="HTML")
+
+
+@dp.callback_query(F.data == "search_user")
+async def callback_search_user(callback: CallbackQuery, state: FSMContext):
+    """Начать поиск пользователя"""
+    await callback.answer()
+    
+    await callback.message.answer(
+        "🔍 <b>Поиск пользователя</b>\n\n"
+        "Введите username или имя пользователя для поиска:\n"
+        "(можно вводить с @ или без)",
+        parse_mode="HTML",
+        reply_markup=get_cancel_keyboard()
+    )
+    await state.set_state(SearchStates.waiting_for_username)
+
+
+@dp.message(SearchStates.waiting_for_username)
+async def process_search_username(message: Message, state: FSMContext):
+    """Обработка поиска пользователя"""
+    if message.text == "❌ Отменить":
+        await state.clear()
+        await message.answer("❌ Поиск отменен.", reply_markup=get_admin_keyboard())
+        return
+    
+    search_query = message.text.strip()
+    
+    # Ищем пользователей
+    found_users = await search_users_by_username(search_query)
+    
+    if not found_users:
+        await message.answer(
+            f"❌ Пользователи с username/именем '<b>{search_query}</b>' не найдены.\n\n"
+            "Попробуйте другой запрос или нажмите ❌ Отменить",
+            parse_mode="HTML"
+        )
+        return
+    
+    # Показываем результаты
+    results_text = (
+        f"🔍 <b>Результаты поиска</b>\n"
+        f"Запрос: <code>{search_query}</code>\n"
+        f"Найдено: {len(found_users)}\n\n"
+        "Выберите пользователя:"
+    )
+    
+    # Создаем клавиатуру с результатами
+    buttons = []
+    for user in found_users:
+        name = user.get('first_name', 'Без имени')
+        username = f"@{user['username']}" if user.get('username') else ""
+        label = f"{name} {username}".strip()
+        buttons.append([InlineKeyboardButton(
+            text=label[:40],
+            callback_data=f"user_info_{user['user_id']}"
+        )])
+    
+    buttons.append([InlineKeyboardButton(text="◀️ Назад к списку", callback_data="back_to_users_list")])
+    
+    keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
+    
+    await message.answer(results_text, reply_markup=keyboard, parse_mode="HTML")
+    await state.clear()
 
 
 # ==================== ОБРАБОТЧИК ОСТАЛЬНЫХ СООБЩЕНИЙ ====================

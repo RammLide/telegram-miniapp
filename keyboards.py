@@ -139,6 +139,9 @@ def get_users_list_keyboard(users: list, page: int, total_pages: int) -> InlineK
     """Клавиатура со списком пользователей (кнопки)"""
     buttons = []
     
+    # Кнопка поиска
+    buttons.append([InlineKeyboardButton(text="🔍 Поиск по username", callback_data="search_user")])
+    
     # Добавляем кнопки пользователей
     for user in users:
         name = user.get('first_name', 'Без имени')
@@ -168,18 +171,23 @@ def get_users_list_keyboard(users: list, page: int, total_pages: int) -> InlineK
     return keyboard
 
 
-def get_user_management_keyboard(user_id: int) -> InlineKeyboardMarkup:
+def get_user_management_keyboard(user_id: int, is_banned: bool = False) -> InlineKeyboardMarkup:
     """Клавиатура управления пользователем"""
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="💰 Изменить баланс", callback_data=f"edit_balance_{user_id}")],
-            [InlineKeyboardButton(text="📊 Показать статистику", callback_data=f"user_stats_{user_id}")],
-            [InlineKeyboardButton(text="🚫 Заблокировать", callback_data=f"ban_user_{user_id}")],
-            [InlineKeyboardButton(text="✅ Разблокировать", callback_data=f"unban_user_{user_id}")],
-            [InlineKeyboardButton(text="🗑️ Удалить аккаунт", callback_data=f"delete_user_{user_id}")],
-            [InlineKeyboardButton(text="◀️ Назад к списку", callback_data="back_to_users_list")]
-        ]
-    )
+    buttons = [
+        [InlineKeyboardButton(text="💰 Изменить баланс", callback_data=f"edit_balance_{user_id}")],
+        [InlineKeyboardButton(text="📊 Показать статистику", callback_data=f"user_stats_{user_id}")]
+    ]
+    
+    # Показываем либо блокировку, либо разблокировку
+    if is_banned:
+        buttons.append([InlineKeyboardButton(text="✅ Разблокировать", callback_data=f"unban_user_{user_id}")])
+    else:
+        buttons.append([InlineKeyboardButton(text="🚫 Заблокировать", callback_data=f"ban_user_{user_id}")])
+    
+    buttons.append([InlineKeyboardButton(text="🗑️ Удалить аккаунт", callback_data=f"delete_user_{user_id}")])
+    buttons.append([InlineKeyboardButton(text="◀️ Назад к списку", callback_data="back_to_users_list")])
+    
+    keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
     return keyboard
 
 

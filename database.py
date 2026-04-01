@@ -229,6 +229,30 @@ async def get_all_users() -> List[int]:
             return [row[0] for row in rows]
 
 
+async def search_users_by_username(username: str) -> List[Dict]:
+    """Поиск пользователей по username"""
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        # Убираем @ если есть
+        username = username.lstrip('@')
+        
+        async with db.execute("""
+            SELECT user_id, username, first_name, last_name
+            FROM users
+            WHERE username LIKE ? OR first_name LIKE ?
+            LIMIT 20
+        """, (f'%{username}%', f'%{username}%')) as cursor:
+            rows = await cursor.fetchall()
+            return [
+                {
+                    'user_id': row[0],
+                    'username': row[1],
+                    'first_name': row[2],
+                    'last_name': row[3]
+                }
+                for row in rows
+            ]
+
+
 async def get_users_count() -> int:
     """Получение количества пользователей"""
     async with aiosqlite.connect(DATABASE_PATH) as db:
