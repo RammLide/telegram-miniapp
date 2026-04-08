@@ -897,8 +897,15 @@ function displayCaseItems(items) {
 }
 
 function closeModal() {
+    // Если есть невыбранная награда, автоматически добавляем в инвентарь
+    if (currentRewardItem && document.getElementById('rewardChoice').style.display !== 'none') {
+        handleRewardChoice('keep');
+        return; // Не закрываем модалку сразу, дождемся завершения обработки
+    }
+    
     document.getElementById('caseModal').classList.remove('active');
     currentCase = null;
+    currentRewardItem = null;
 }
 
 function openCase() {
@@ -1961,7 +1968,12 @@ async function handleRewardChoice(choice) {
             openBtn.disabled = false;
             openBtn.querySelector('.btn-text').textContent = 'Открыть еще';
             
+            // Очищаем текущую награду
             currentRewardItem = null;
+            
+            // Разблокируем кнопки для следующего раза
+            if (btnKeep) btnKeep.disabled = false;
+            if (btnSell) btnSell.disabled = false;
         } else {
             const error = await response.json();
             showNotification('❌ ' + (error.error || 'Ошибка'));
