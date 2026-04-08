@@ -205,10 +205,12 @@ const cases = [
         price: 100,
         emoji: '📦',
         items: [
-            { name: 'Монета', rarity: 'common', value: 10, image: '🪙', exp: 5, chance: 50 },
-            { name: 'Кристалл', rarity: 'rare', value: 50, image: '💎', exp: 15, chance: 30 },
-            { name: 'Золото', rarity: 'epic', value: 150, image: '🏆', exp: 30, chance: 15 },
-            { name: 'Меч', rarity: 'legendary', value: 500, image: '⚔️', exp: 100, chance: 5 }
+            { name: '50 монет', rarity: 'common', value: 50, image: '💰', exp: 5, chance: 35, type: 'money' },
+            { name: 'Монета', rarity: 'common', value: 10, image: '🪙', exp: 5, chance: 25, type: 'item' },
+            { name: 'Кристалл', rarity: 'rare', value: 50, image: '💎', exp: 15, chance: 20, type: 'item' },
+            { name: '200 монет', rarity: 'rare', value: 200, image: '💵', exp: 10, chance: 10, type: 'money' },
+            { name: 'Золото', rarity: 'epic', value: 150, image: '🏆', exp: 30, chance: 7, type: 'item' },
+            { name: 'Меч', rarity: 'legendary', value: 500, image: '⚔️', exp: 100, chance: 3, type: 'item' }
         ]
     },
     {
@@ -217,10 +219,12 @@ const cases = [
         price: 250,
         emoji: '🎁',
         items: [
-            { name: 'Серебро', rarity: 'common', value: 50, image: '🥈', exp: 10, chance: 50 },
-            { name: 'Рубин', rarity: 'rare', value: 150, image: '💍', exp: 25, chance: 30 },
-            { name: 'Корона', rarity: 'epic', value: 400, image: '👑', exp: 50, chance: 15 },
-            { name: 'Дракон', rarity: 'legendary', value: 1000, image: '🐉', exp: 150, chance: 5 }
+            { name: '150 монет', rarity: 'common', value: 150, image: '💰', exp: 10, chance: 30, type: 'money' },
+            { name: 'Серебро', rarity: 'common', value: 50, image: '🥈', exp: 10, chance: 25, type: 'item' },
+            { name: 'Рубин', rarity: 'rare', value: 150, image: '💍', exp: 25, chance: 20, type: 'item' },
+            { name: '500 монет', rarity: 'rare', value: 500, image: '💵', exp: 15, chance: 12, type: 'money' },
+            { name: 'Корона', rarity: 'epic', value: 400, image: '👑', exp: 50, chance: 10, type: 'item' },
+            { name: 'Дракон', rarity: 'legendary', value: 1000, image: '🐉', exp: 150, chance: 3, type: 'item' }
         ]
     },
     {
@@ -229,10 +233,12 @@ const cases = [
         price: 500,
         emoji: '💎',
         items: [
-            { name: 'Золото', rarity: 'common', value: 100, image: '🟡', exp: 20, chance: 50 },
-            { name: 'Изумруд', rarity: 'rare', value: 300, image: '💚', exp: 40, chance: 30 },
-            { name: 'Посох', rarity: 'epic', value: 800, image: '🪄', exp: 80, chance: 15 },
-            { name: 'Феникс', rarity: 'legendary', value: 2000, image: '🔥', exp: 200, chance: 5 }
+            { name: '300 монет', rarity: 'common', value: 300, image: '💰', exp: 20, chance: 30, type: 'money' },
+            { name: 'Золото', rarity: 'common', value: 100, image: '🟡', exp: 20, chance: 25, type: 'item' },
+            { name: 'Изумруд', rarity: 'rare', value: 300, image: '💚', exp: 40, chance: 20, type: 'item' },
+            { name: '1000 монет', rarity: 'rare', value: 1000, image: '💵', exp: 30, chance: 12, type: 'money' },
+            { name: 'Посох', rarity: 'epic', value: 800, image: '🪄', exp: 80, chance: 10, type: 'item' },
+            { name: 'Феникс', rarity: 'legendary', value: 2000, image: '🔥', exp: 200, chance: 3, type: 'item' }
         ]
     },
     {
@@ -241,10 +247,12 @@ const cases = [
         price: 1000,
         emoji: '👑',
         items: [
-            { name: 'Платина', rarity: 'rare', value: 500, image: '⚪', exp: 50, chance: 40 },
-            { name: 'Алмаз', rarity: 'epic', value: 1200, image: '💎', exp: 100, chance: 35 },
-            { name: 'Щит', rarity: 'legendary', value: 3000, image: '🛡️', exp: 250, chance: 20 },
-            { name: 'Единорог', rarity: 'legendary', value: 5000, image: '🦄', exp: 500, chance: 5 }
+            { name: '800 монет', rarity: 'rare', value: 800, image: '💰', exp: 40, chance: 25, type: 'money' },
+            { name: 'Платина', rarity: 'rare', value: 500, image: '⚪', exp: 50, chance: 25, type: 'item' },
+            { name: 'Алмаз', rarity: 'epic', value: 1200, image: '💎', exp: 100, chance: 20, type: 'item' },
+            { name: '2500 монет', rarity: 'epic', value: 2500, image: '💵', exp: 80, chance: 15, type: 'money' },
+            { name: 'Щит', rarity: 'legendary', value: 3000, image: '🛡️', exp: 250, chance: 12, type: 'item' },
+            { name: 'Единорог', rarity: 'legendary', value: 5000, image: '🦄', exp: 500, chance: 3, type: 'item' }
         ]
     },
     {
@@ -253,10 +261,12 @@ const cases = [
         price: 2000,
         emoji: '💠',
         items: [
-            { name: 'Сапфир', rarity: 'rare', value: 800, image: '🔷', exp: 80, chance: 40 },
-            { name: 'Топаз', rarity: 'epic', value: 1800, image: '🟨', exp: 150, chance: 35 },
-            { name: 'Трон', rarity: 'legendary', value: 4500, image: '🪑', exp: 350, chance: 20 },
-            { name: 'Грифон', rarity: 'legendary', value: 8000, image: '🦅', exp: 700, chance: 5 }
+            { name: '1500 монет', rarity: 'rare', value: 1500, image: '💰', exp: 60, chance: 25, type: 'money' },
+            { name: 'Сапфир', rarity: 'rare', value: 800, image: '🔷', exp: 80, chance: 25, type: 'item' },
+            { name: 'Топаз', rarity: 'epic', value: 1800, image: '🟨', exp: 150, chance: 20, type: 'item' },
+            { name: '4000 монет', rarity: 'epic', value: 4000, image: '💵', exp: 120, chance: 15, type: 'money' },
+            { name: 'Трон', rarity: 'legendary', value: 4500, image: '🪑', exp: 350, chance: 12, type: 'item' },
+            { name: 'Грифон', rarity: 'legendary', value: 8000, image: '🦅', exp: 700, chance: 3, type: 'item' }
         ]
     },
     {
@@ -265,10 +275,12 @@ const cases = [
         price: 5000,
         emoji: '🌟',
         items: [
-            { name: 'Опал', rarity: 'epic', value: 3000, image: '🔮', exp: 250, chance: 45 },
-            { name: 'Скипетр', rarity: 'legendary', value: 7000, image: '👑', exp: 500, chance: 30 },
-            { name: 'Дракон-король', rarity: 'legendary', value: 12000, image: '🐲', exp: 900, chance: 20 },
-            { name: 'Экскалибур', rarity: 'legendary', value: 20000, image: '⚔️', exp: 1500, chance: 5 }
+            { name: '3500 монет', rarity: 'epic', value: 3500, image: '💰', exp: 200, chance: 25, type: 'money' },
+            { name: 'Опал', rarity: 'epic', value: 3000, image: '🔮', exp: 250, chance: 25, type: 'item' },
+            { name: 'Скипетр', rarity: 'legendary', value: 7000, image: '👑', exp: 500, chance: 20, type: 'item' },
+            { name: '10000 монет', rarity: 'legendary', value: 10000, image: '💵', exp: 400, chance: 15, type: 'money' },
+            { name: 'Дракон-король', rarity: 'legendary', value: 12000, image: '🐲', exp: 900, chance: 12, type: 'item' },
+            { name: 'Экскалибур', rarity: 'legendary', value: 20000, image: '⚔️', exp: 1500, chance: 3, type: 'item' }
         ]
     },
     {
@@ -277,10 +289,12 @@ const cases = [
         price: 10000,
         emoji: '✨',
         items: [
-            { name: 'Нефрит', rarity: 'epic', value: 6000, image: '🟢', exp: 450, chance: 45 },
-            { name: 'Крылья ангела', rarity: 'legendary', value: 15000, image: '🪽', exp: 1000, chance: 30 },
-            { name: 'Молот Тора', rarity: 'legendary', value: 25000, image: '🔨', exp: 1800, chance: 20 },
-            { name: 'Корона богов', rarity: 'legendary', value: 50000, image: '👑', exp: 3500, chance: 5 }
+            { name: '7000 монет', rarity: 'epic', value: 7000, image: '💰', exp: 350, chance: 25, type: 'money' },
+            { name: 'Нефрит', rarity: 'epic', value: 6000, image: '🟢', exp: 450, chance: 25, type: 'item' },
+            { name: 'Крылья ангела', rarity: 'legendary', value: 15000, image: '🪽', exp: 1000, chance: 20, type: 'item' },
+            { name: '20000 монет', rarity: 'legendary', value: 20000, image: '💵', exp: 800, chance: 15, type: 'money' },
+            { name: 'Молат Тора', rarity: 'legendary', value: 25000, image: '🔨', exp: 1800, chance: 12, type: 'item' },
+            { name: 'Корона богов', rarity: 'legendary', value: 50000, image: '👑', exp: 3500, chance: 3, type: 'item' }
         ]
     }
 ];
@@ -464,6 +478,10 @@ function setupEventListeners() {
     document.getElementById('modalClose').addEventListener('click', closeModal);
     document.getElementById('modalOverlay').addEventListener('click', closeModal);
     document.getElementById('openCaseBtn').addEventListener('click', openCase);
+    
+    // Выбор награды из кейса
+    document.getElementById('btnKeepItem').addEventListener('click', () => handleRewardChoice('keep'));
+    document.getElementById('btnSellItem').addEventListener('click', () => handleRewardChoice('sell'));
     
     // Модальное окно достижений
     document.getElementById('achievementsBtn').addEventListener('click', openAchievementsModal);
@@ -926,39 +944,9 @@ function openCase() {
             // После завершения анимации показываем результат
             showCaseResult(item);
             
-            // Обновляем баланс с сервера
+            // Обновляем баланс с сервера (после списания за кейс)
             userData.balance = data.balance;
-            addExp(item.exp || 10);
-            
-            addToHistory(currentCase.name, item);
-            updateAchievement('first_case', 1);
-            updateAchievement('case_10', openHistory.length);
-            updateAchievement('case_50', openHistory.length);
-            updateAchievement('case_100', openHistory.length);
-            updateAchievement('case_500', openHistory.length);
-            updateAchievement('case_1000', openHistory.length);
-            updateAchievement('rich', userData.balance);
-            updateAchievement('very_rich', userData.balance);
-            updateAchievement('millionaire', userData.balance);
-            updateAchievement('multimillionaire', userData.balance);
-            
-            if (item.rarity === 'legendary') {
-                updateAchievement('legendary_item', 1);
-            }
-            
-            // Обновляем рейтинг
-            updateRatingScore();
-            
             updateUI();
-            
-            // Сохраняем данные сразу после открытия кейса
-            saveGameData();
-            
-            // Обновляем инвентарь
-            loadInventory();
-            
-            openBtn.disabled = false;
-            openBtn.querySelector('.btn-text').textContent = 'Открыть еще';
         });
     })
     .catch(error => {
@@ -1053,9 +1041,13 @@ function getRandomItem(items) {
     return items[0];
 }
 
+let currentRewardItem = null;
+
 function showCaseResult(item) {
     document.getElementById('casePreview').style.display = 'none';
     document.getElementById('caseItemsList').style.display = 'none';
+    
+    currentRewardItem = item;
     
     const result = document.getElementById('caseResult');
     document.getElementById('resultRarity').className = `result-rarity ${item.rarity}`;
@@ -1079,6 +1071,22 @@ function showCaseResult(item) {
     }
     
     updateUI();
+    
+    // Если выпали деньги - автоматически начисляем их
+    if (item.type === 'money') {
+        // Скрываем выбор для денег
+        document.getElementById('rewardChoice').style.display = 'none';
+        
+        // Автоматически начисляем деньги
+        handleRewardChoice('money');
+    } else {
+        // Показываем сумму продажи (50% от стоимости)
+        const sellAmount = Math.floor(item.value / 2);
+        document.getElementById('sellAmount').textContent = sellAmount;
+        
+        // Показываем выбор для предметов
+        document.getElementById('rewardChoice').style.display = 'block';
+    }
     
     result.style.display = 'block';
     
@@ -1881,5 +1889,95 @@ async function cancelListing(listingId) {
     } catch (error) {
         console.error('Error cancelling listing:', error);
         showNotification('❌ Ошибка отмены');
+    }
+}
+
+// Обработка выбора награды из кейса
+async function handleRewardChoice(choice) {
+    if (!currentRewardItem) return;
+    
+    try {
+        // Блокируем кнопки
+        const btnKeep = document.getElementById('btnKeepItem');
+        const btnSell = document.getElementById('btnSellItem');
+        if (btnKeep) btnKeep.disabled = true;
+        if (btnSell) btnSell.disabled = true;
+        
+        const response = await fetch(`${API_URL}/api/case_reward_choice`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                user_id: userData.userId,
+                item: currentRewardItem,
+                choice: choice === 'money' ? 'sell' : choice  // Деньги обрабатываем как продажу
+            })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            
+            // Обновляем баланс
+            userData.balance = data.balance;
+            updateUI();
+            
+            // Показываем уведомление
+            if (choice === 'keep') {
+                showNotification(`✅ ${currentRewardItem.name} добавлен в инвентарь!`);
+                loadInventory();
+            } else if (choice === 'money') {
+                showNotification(`💰 Получено ${currentRewardItem.value} монет!`);
+            } else {
+                showNotification(`💰 Получено ${data.amount} монет за продажу!`);
+            }
+            
+            tg.HapticFeedback.notificationOccurred('success');
+            
+            // Обновляем достижения
+            addToHistory(currentCase.name, currentRewardItem);
+            updateAchievement('first_case', 1);
+            updateAchievement('case_10', openHistory.length);
+            updateAchievement('case_50', openHistory.length);
+            updateAchievement('case_100', openHistory.length);
+            updateAchievement('case_500', openHistory.length);
+            updateAchievement('case_1000', openHistory.length);
+            updateAchievement('rich', userData.balance);
+            updateAchievement('very_rich', userData.balance);
+            updateAchievement('millionaire', userData.balance);
+            updateAchievement('multimillionaire', userData.balance);
+            
+            if (currentRewardItem.rarity === 'legendary') {
+                updateAchievement('legendary_item', 1);
+            }
+            
+            // Обновляем рейтинг
+            updateRatingScore();
+            
+            // Сохраняем данные
+            saveGameData();
+            
+            // Скрываем выбор и показываем кнопку "Открыть еще"
+            document.getElementById('rewardChoice').style.display = 'none';
+            const openBtn = document.getElementById('openCaseBtn');
+            openBtn.disabled = false;
+            openBtn.querySelector('.btn-text').textContent = 'Открыть еще';
+            
+            currentRewardItem = null;
+        } else {
+            const error = await response.json();
+            showNotification('❌ ' + (error.error || 'Ошибка'));
+            
+            // Разблокируем кнопки
+            if (btnKeep) btnKeep.disabled = false;
+            if (btnSell) btnSell.disabled = false;
+        }
+    } catch (error) {
+        console.error('Error handling reward choice:', error);
+        showNotification('❌ Ошибка обработки выбора');
+        
+        // Разблокируем кнопки
+        const btnKeep = document.getElementById('btnKeepItem');
+        const btnSell = document.getElementById('btnSellItem');
+        if (btnKeep) btnKeep.disabled = false;
+        if (btnSell) btnSell.disabled = false;
     }
 }

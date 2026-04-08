@@ -191,8 +191,19 @@ async def init_db():
             )
         """)
         
+        # Создаем индексы для улучшения производительности
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)")
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_users_referrer ON users(referrer_id)")
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_users_referral_code ON users(referral_code)")
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_user_bans_user_active ON user_bans(user_id, is_active)")
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_user_game_data_rating ON user_game_data(rating_score DESC)")
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_marketplace_status ON marketplace(status)")
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_marketplace_seller ON marketplace(seller_id)")
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_id)")
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_referrals_referred ON referrals(referred_id)")
+        
         await db.commit()
-        logger.info("База данных инициализирована")
+        logger.info("База данных инициализирована с индексами")
 
 
 async def add_user(user_id: int, username: Optional[str] = None, first_name: Optional[str] = None, last_name: Optional[str] = None):

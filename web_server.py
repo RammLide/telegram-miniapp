@@ -42,10 +42,12 @@ CASES = [
         "name": "Бронзовый кейс",
         "price": 100,
         "items": [
-            {"name": "Монета", "rarity": "common", "value": 10, "image": "🪙", "chance": 50},
-            {"name": "Кристалл", "rarity": "rare", "value": 50, "image": "💎", "chance": 30},
-            {"name": "Золото", "rarity": "epic", "value": 150, "image": "🏆", "chance": 15},
-            {"name": "Легендарный меч", "rarity": "legendary", "value": 500, "image": "⚔️", "chance": 5}
+            {"name": "50 монет", "rarity": "common", "value": 50, "image": "💰", "chance": 35, "type": "money"},
+            {"name": "Монета", "rarity": "common", "value": 10, "image": "🪙", "chance": 25, "type": "item"},
+            {"name": "Кристалл", "rarity": "rare", "value": 50, "image": "💎", "chance": 20, "type": "item"},
+            {"name": "200 монет", "rarity": "rare", "value": 200, "image": "💵", "chance": 10, "type": "money"},
+            {"name": "Золото", "rarity": "epic", "value": 150, "image": "🏆", "chance": 7, "type": "item"},
+            {"name": "Меч", "rarity": "legendary", "value": 500, "image": "⚔️", "chance": 3, "type": "item"}
         ]
     },
     {
@@ -53,10 +55,12 @@ CASES = [
         "name": "Серебряный кейс",
         "price": 250,
         "items": [
-            {"name": "Серебро", "rarity": "common", "value": 50, "image": "🥈", "chance": 50},
-            {"name": "Рубин", "rarity": "rare", "value": 150, "image": "💍", "chance": 30},
-            {"name": "Корона", "rarity": "epic", "value": 400, "image": "👑", "chance": 15},
-            {"name": "Дракон", "rarity": "legendary", "value": 1000, "image": "🐉", "chance": 5}
+            {"name": "150 монет", "rarity": "common", "value": 150, "image": "💰", "chance": 30, "type": "money"},
+            {"name": "Серебро", "rarity": "common", "value": 50, "image": "🥈", "chance": 25, "type": "item"},
+            {"name": "Рубин", "rarity": "rare", "value": 150, "image": "💍", "chance": 20, "type": "item"},
+            {"name": "500 монет", "rarity": "rare", "value": 500, "image": "💵", "chance": 12, "type": "money"},
+            {"name": "Корона", "rarity": "epic", "value": 400, "image": "👑", "chance": 10, "type": "item"},
+            {"name": "Дракон", "rarity": "legendary", "value": 1000, "image": "🐉", "chance": 3, "type": "item"}
         ]
     },
     {
@@ -64,10 +68,12 @@ CASES = [
         "name": "Золотой кейс",
         "price": 500,
         "items": [
-            {"name": "Золотая монета", "rarity": "common", "value": 100, "image": "🟡", "chance": 50},
-            {"name": "Изумруд", "rarity": "rare", "value": 300, "image": "💚", "chance": 30},
-            {"name": "Магический посох", "rarity": "epic", "value": 800, "image": "🪄", "chance": 15},
-            {"name": "Феникс", "rarity": "legendary", "value": 2000, "image": "🔥", "chance": 5}
+            {"name": "300 монет", "rarity": "common", "value": 300, "image": "💰", "chance": 30, "type": "money"},
+            {"name": "Золото", "rarity": "common", "value": 100, "image": "🟡", "chance": 25, "type": "item"},
+            {"name": "Изумруд", "rarity": "rare", "value": 300, "image": "💚", "chance": 20, "type": "item"},
+            {"name": "1000 монет", "rarity": "rare", "value": 1000, "image": "💵", "chance": 12, "type": "money"},
+            {"name": "Посох", "rarity": "epic", "value": 800, "image": "🪄", "chance": 10, "type": "item"},
+            {"name": "Феникс", "rarity": "legendary", "value": 2000, "image": "🔥", "chance": 3, "type": "item"}
         ]
     },
     {
@@ -75,10 +81,12 @@ CASES = [
         "name": "Платиновый кейс",
         "price": 1000,
         "items": [
-            {"name": "Платина", "rarity": "rare", "value": 500, "image": "⚪", "chance": 40},
-            {"name": "Алмаз", "rarity": "epic", "value": 1200, "image": "💎", "chance": 35},
-            {"name": "Легендарный щит", "rarity": "legendary", "value": 3000, "image": "🛡️", "chance": 20},
-            {"name": "Единорог", "rarity": "legendary", "value": 5000, "image": "🦄", "chance": 5}
+            {"name": "800 монет", "rarity": "rare", "value": 800, "image": "💰", "chance": 25, "type": "money"},
+            {"name": "Платина", "rarity": "rare", "value": 500, "image": "⚪", "chance": 25, "type": "item"},
+            {"name": "Алмаз", "rarity": "epic", "value": 1200, "image": "💎", "chance": 20, "type": "item"},
+            {"name": "2500 монет", "rarity": "epic", "value": 2500, "image": "💵", "chance": 15, "type": "money"},
+            {"name": "Щит", "rarity": "legendary", "value": 3000, "image": "🛡️", "chance": 12, "type": "item"},
+            {"name": "Единорог", "rarity": "legendary", "value": 5000, "image": "🦄", "chance": 3, "type": "item"}
         ]
     },
     {
@@ -86,10 +94,12 @@ CASES = [
         "name": "Алмазный кейс",
         "price": 2000,
         "items": [
-            {"name": "Сапфир", "rarity": "rare", "value": 800, "image": "🔷", "chance": 40},
-            {"name": "Топаз", "rarity": "epic", "value": 1800, "image": "🟨", "chance": 35},
-            {"name": "Трон", "rarity": "legendary", "value": 4500, "image": "🪑", "chance": 20},
-            {"name": "Грифон", "rarity": "legendary", "value": 8000, "image": "🦅", "chance": 5}
+            {"name": "1500 монет", "rarity": "rare", "value": 1500, "image": "💰", "chance": 25, "type": "money"},
+            {"name": "Сапфир", "rarity": "rare", "value": 800, "image": "🔷", "chance": 25, "type": "item"},
+            {"name": "Топаз", "rarity": "epic", "value": 1800, "image": "🟨", "chance": 20, "type": "item"},
+            {"name": "4000 монет", "rarity": "epic", "value": 4000, "image": "💵", "chance": 15, "type": "money"},
+            {"name": "Трон", "rarity": "legendary", "value": 4500, "image": "🪑", "chance": 12, "type": "item"},
+            {"name": "Грифон", "rarity": "legendary", "value": 8000, "image": "🦅", "chance": 3, "type": "item"}
         ]
     },
     {
@@ -97,10 +107,12 @@ CASES = [
         "name": "Мифический кейс",
         "price": 5000,
         "items": [
-            {"name": "Опал", "rarity": "epic", "value": 3000, "image": "🔮", "chance": 45},
-            {"name": "Скипетр", "rarity": "legendary", "value": 7000, "image": "👑", "chance": 30},
-            {"name": "Дракон-король", "rarity": "legendary", "value": 12000, "image": "🐲", "chance": 20},
-            {"name": "Экскалибур", "rarity": "legendary", "value": 20000, "image": "⚔️", "chance": 5}
+            {"name": "3500 монет", "rarity": "epic", "value": 3500, "image": "💰", "chance": 25, "type": "money"},
+            {"name": "Опал", "rarity": "epic", "value": 3000, "image": "🔮", "chance": 25, "type": "item"},
+            {"name": "Скипетр", "rarity": "legendary", "value": 7000, "image": "👑", "chance": 20, "type": "item"},
+            {"name": "10000 монет", "rarity": "legendary", "value": 10000, "image": "💵", "chance": 15, "type": "money"},
+            {"name": "Дракон-король", "rarity": "legendary", "value": 12000, "image": "🐲", "chance": 12, "type": "item"},
+            {"name": "Экскалибур", "rarity": "legendary", "value": 20000, "image": "⚔️", "chance": 3, "type": "item"}
         ]
     },
     {
@@ -108,10 +120,12 @@ CASES = [
         "name": "Божественный кейс",
         "price": 10000,
         "items": [
-            {"name": "Нефрит", "rarity": "epic", "value": 6000, "image": "🟢", "chance": 45},
-            {"name": "Крылья ангела", "rarity": "legendary", "value": 15000, "image": "🪽", "chance": 30},
-            {"name": "Молот Тора", "rarity": "legendary", "value": 25000, "image": "🔨", "chance": 20},
-            {"name": "Корона богов", "rarity": "legendary", "value": 50000, "image": "👑", "chance": 5}
+            {"name": "7000 монет", "rarity": "epic", "value": 7000, "image": "💰", "chance": 25, "type": "money"},
+            {"name": "Нефрит", "rarity": "epic", "value": 6000, "image": "🟢", "chance": 25, "type": "item"},
+            {"name": "Крылья ангела", "rarity": "legendary", "value": 15000, "image": "🪽", "chance": 20, "type": "item"},
+            {"name": "20000 монет", "rarity": "legendary", "value": 20000, "image": "💵", "chance": 15, "type": "money"},
+            {"name": "Молот Тора", "rarity": "legendary", "value": 25000, "image": "🔨", "chance": 12, "type": "item"},
+            {"name": "Корона богов", "rarity": "legendary", "value": 50000, "image": "👑", "chance": 3, "type": "item"}
         ]
     }
 ]
@@ -171,25 +185,14 @@ async def open_case_endpoint(request):
                 selected_item = item
                 break
         
-        # Добавляем предмет в инвентарь
-        await add_item_to_inventory(
-            user_id,
-            selected_item['name'],
-            selected_item['rarity'],
-            selected_item['value'],
-            selected_item['image']
-        )
-        
-        # Добавляем стоимость предмета к балансу (с начислением процента реферу)
-        logger.info(f"💰 Adding {selected_item['value']} to user {user_id} balance")
-        await add_balance(user_id, selected_item['value'], give_referrer_bonus=True)
-        
         # Логируем открытие
         await log_case_opening(user_id, case['name'], selected_item['name'], selected_item['value'])
         
-        # Получаем новый баланс
+        # Получаем новый баланс (после списания за кейс)
         new_balance = await get_user_balance(user_id)
         
+        # Возвращаем предмет БЕЗ автоматического начисления
+        # Пользователь сам выберет: оставить или продать
         return web.json_response({
             'item': selected_item,
             'balance': new_balance
@@ -251,6 +254,7 @@ def setup_routes(app):
     app.router.add_post('/api/marketplace/buy', buy_marketplace_item_endpoint)
     app.router.add_post('/api/marketplace/cancel', cancel_marketplace_listing_endpoint)
     app.router.add_post('/api/marketplace/my_listings', get_user_marketplace_listings_endpoint)
+    app.router.add_post('/api/case_reward_choice', case_reward_choice_endpoint)
     
     # Статические файлы для Mini App
     app.router.add_static('/webapp/', path='webapp/', name='webapp')
@@ -542,4 +546,58 @@ async def get_user_marketplace_listings_endpoint(request):
     
     except Exception as e:
         logger.error(f"Error in get_user_marketplace_listings: {e}")
+        return web.json_response({'error': str(e)}, status=500)
+
+
+async def case_reward_choice_endpoint(request):
+    """Обработка выбора пользователя: оставить предмет или продать"""
+    try:
+        data = await request.json()
+        user_id = data.get('user_id')
+        item = data.get('item')
+        choice = data.get('choice')  # 'keep' или 'sell'
+        
+        if not all([user_id, item, choice]):
+            return web.json_response({'error': 'Missing required fields'}, status=400)
+        
+        if choice == 'keep':
+            # Добавляем предмет в инвентарь
+            await add_item_to_inventory(
+                user_id,
+                item['name'],
+                item['rarity'],
+                item['value'],
+                item['image']
+            )
+            logger.info(f"✅ User {user_id} kept item: {item['name']}")
+            
+            new_balance = await get_user_balance(user_id)
+            return web.json_response({
+                'success': True,
+                'action': 'kept',
+                'balance': new_balance,
+                'message': f'Предмет "{item["name"]}" добавлен в инвентарь!'
+            })
+            
+        elif choice == 'sell':
+            # Продаем за половину стоимости
+            sell_price = item['value'] // 2
+            
+            # Начисляем деньги (с процентом реферу)
+            await add_balance(user_id, sell_price, give_referrer_bonus=True)
+            logger.info(f"💰 User {user_id} sold item {item['name']} for {sell_price}")
+            
+            new_balance = await get_user_balance(user_id)
+            return web.json_response({
+                'success': True,
+                'action': 'sold',
+                'balance': new_balance,
+                'amount': sell_price,
+                'message': f'Предмет продан за {sell_price} монет!'
+            })
+        else:
+            return web.json_response({'error': 'Invalid choice'}, status=400)
+    
+    except Exception as e:
+        logger.error(f"Error in case_reward_choice: {e}")
         return web.json_response({'error': str(e)}, status=500)

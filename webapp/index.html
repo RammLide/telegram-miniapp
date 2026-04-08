@@ -232,6 +232,24 @@
                         <h3 id="resultName"></h3>
                         <p class="result-value">💎 <span id="resultValue"></span></p>
                         <p class="result-exp">+<span id="resultExp"></span> XP</p>
+                        
+                        <!-- Выбор: оставить или продать -->
+                        <div class="reward-choice" id="rewardChoice">
+                            <p class="choice-title">Что сделать с предметом?</p>
+                            <div class="choice-buttons">
+                                <button class="btn-choice btn-keep" id="btnKeepItem">
+                                    <span class="choice-icon">🎒</span>
+                                    <span class="choice-text">Оставить</span>
+                                    <span class="choice-desc">Добавить в инвентарь</span>
+                                </button>
+                                <button class="btn-choice btn-sell" id="btnSellItem">
+                                    <span class="choice-icon">💰</span>
+                                    <span class="choice-text">Продать</span>
+                                    <span class="choice-desc">Получить <span id="sellAmount">0</span> монет</span>
+                                </button>
+                            </div>
+                            <p class="choice-warning">⚠️ При продаже вы получите только 50% от стоимости предмета</p>
+                        </div>
                     </div>
                 </div>
                 
