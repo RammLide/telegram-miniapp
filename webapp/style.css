@@ -82,8 +82,14 @@ header {
     color: var(--text-secondary);
 }
 
+.header-buttons {
+    display: flex;
+    gap: 8px;
+}
+
 .settings-btn,
-.achievements-btn {
+.achievements-btn,
+.turbo-pass-btn {
     width: 40px;
     height: 40px;
     background: rgba(255,255,255,0.1);
@@ -96,8 +102,14 @@ header {
     transition: all 0.3s;
 }
 
+.turbo-pass-btn {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+}
+
 .settings-btn:active,
-.achievements-btn:active {
+.achievements-btn:active,
+.turbo-pass-btn:active {
     transform: scale(0.9);
 }
 
@@ -1319,6 +1331,29 @@ main {
     font-weight: bold;
 }
 
+.btn-quick-sell {
+    margin-top: 10px;
+    padding: 8px 12px;
+    background: linear-gradient(135deg, var(--gold), #ffed4e);
+    color: #333;
+    border: none;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+    width: 100%;
+}
+
+.btn-quick-sell:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
+}
+
+.btn-quick-sell:active {
+    transform: scale(0.95);
+}
+
 /* ==================== ТОРГОВАЯ ПЛОЩАДКА ==================== */
 .market-tabs {
     display: flex;
@@ -1638,4 +1673,122 @@ main {
     background: rgba(255, 107, 107, 0.1);
     border-radius: 8px;
     border: 1px solid rgba(255, 107, 107, 0.3);
+}
+
+/* ==================== TURBO PASS ==================== */
+.turbo-pass-modal-content {
+    max-width: 500px;
+    max-height: 85vh;
+    overflow-y: auto;
+}
+
+.turbo-pass-desc {
+    text-align: center;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+.turbo-pass-progress {
+    background: rgba(255,255,255,0.05);
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.pass-day-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+#passStreak {
+    color: #ff6b6b;
+}
+
+.turbo-pass-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 10px;
+}
+
+.pass-day-card {
+    background: rgba(255,255,255,0.05);
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+    border: 2px solid rgba(255,255,255,0.1);
+    transition: all 0.3s;
+    position: relative;
+}
+
+.pass-day-card.completed {
+    border-color: #4ade80;
+    background: rgba(74, 222, 128, 0.1);
+}
+
+.pass-day-card.current {
+    border-color: var(--gold);
+    background: rgba(255, 215, 0, 0.1);
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.pass-day-card.locked {
+    opacity: 0.4;
+    filter: grayscale(1);
+}
+
+.pass-day-number {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.pass-day-reward {
+    font-size: 28px;
+    margin-bottom: 5px;
+}
+
+.pass-day-value {
+    font-size: 11px;
+    color: var(--gold);
+    font-weight: bold;
+}
+
+.pass-claim-btn {
+    margin-top: 8px;
+    padding: 6px 12px;
+    background: linear-gradient(135deg, var(--gold), #ffed4e);
+    color: #333;
+    border: none;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+    width: 100%;
+}
+
+.pass-claim-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
+}
+
+.pass-claim-btn:active {
+    transform: scale(0.95);
+}
+
+.pass-claim-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pass-checkmark {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    font-size: 16px;
 }

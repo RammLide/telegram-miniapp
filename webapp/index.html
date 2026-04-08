@@ -22,7 +22,10 @@
                     <span class="user-name" id="username">Загрузка...</span>
                     <span class="user-level">Уровень <span id="level">1</span></span>
                 </div>
-                <div class="achievements-btn" id="achievementsBtn">🏆</div>
+                <div class="header-buttons">
+                    <div class="achievements-btn" id="achievementsBtn">🏆</div>
+                    <div class="turbo-pass-btn" id="turboPassBtn">📅</div>
+                </div>
             </div>
             
             <div class="stats-panel">
@@ -288,6 +291,23 @@
                     <input type="number" id="sellPrice" min="1" placeholder="Введите цену">
                 </div>
                 <button class="btn-confirm-sell" id="confirmSellBtn">Выставить на продажу</button>
+            </div>
+        </div>
+
+        <!-- Модальное окно Turbo PASS -->
+        <div class="modal" id="turboPassModal">
+            <div class="modal-overlay" id="turboPassModalOverlay"></div>
+            <div class="modal-content turbo-pass-modal-content">
+                <button class="modal-close" id="turboPassModalClose">✕</button>
+                <h2>📅 Turbo PASS</h2>
+                <p class="turbo-pass-desc">Заходи каждый день и получай награды! Пропустишь день - начнешь сначала.</p>
+                <div class="turbo-pass-progress">
+                    <div class="pass-day-info">
+                        <span>День <span id="currentPassDay">1</span> из 30</span>
+                        <span id="passStreak">🔥 Серия: <span id="passStreakCount">0</span></span>
+                    </div>
+                </div>
+                <div class="turbo-pass-grid" id="turboPassGrid"></div>
             </div>
         </div>
     </div>

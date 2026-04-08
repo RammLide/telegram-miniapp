@@ -191,6 +191,19 @@ async def init_db():
             )
         """)
         
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS turbo_pass (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER UNIQUE,
+                current_day INTEGER DEFAULT 1,
+                streak INTEGER DEFAULT 0,
+                last_claim_date DATE,
+                claimed_days TEXT DEFAULT '[]',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(user_id)
+            )
+        """)
+        
         # Создаем индексы для улучшения производительности
         await db.execute("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)")
         await db.execute("CREATE INDEX IF NOT EXISTS idx_users_referrer ON users(referrer_id)")
@@ -201,6 +214,7 @@ async def init_db():
         await db.execute("CREATE INDEX IF NOT EXISTS idx_marketplace_seller ON marketplace(seller_id)")
         await db.execute("CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_id)")
         await db.execute("CREATE INDEX IF NOT EXISTS idx_referrals_referred ON referrals(referred_id)")
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_turbo_pass_user ON turbo_pass(user_id)")
         
         await db.commit()
         logger.info("База данных инициализирована с индексами")
@@ -663,7 +677,8 @@ async def get_user_inventory(user_id: int) -> List[Dict]:
     async with aiosqlite.connect(DATABASE_PATH) as db:
         async with db.execute("""
             SELECT item_name, item_rarity, item_value, item_image, count
-            FROM user_inventory WHERE user_id = ?
+            FROM user_inventory
+            WHERE user_id = ?
             ORDER BY item_value DESC
         """, (user_id,)) as cursor:
             rows = await cursor.fetchall()
@@ -677,6 +692,38 @@ async def get_user_inventory(user_id: int) -> List[Dict]:
                 }
                 for row in rows
             ]
+
+
+async def remove_item_from_inventory(user_id: int, item_name: str, item_rarity: str, item_value: int, item_image: str) -> bool:
+    """Удаление предмета из инвентаря"""
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        # Проверяем наличие предмета
+        async with db.execute("""
+            SELECT id, count FROM user_inventory 
+            WHERE user_id = ? AND item_name = ? AND item_rarity = ? AND item_value = ?
+        """, (user_id, item_name, item_rarity, item_value)) as cursor:
+            result = await cursor.fetchone()
+            
+            if not result:
+                return False
+            
+            item_id, count = result
+            
+            if count > 1:
+                # Уменьшаем количество
+                await db.execute("""
+                    UPDATE user_inventory SET count = count - 1 
+                    WHERE id = ?
+                """, (item_id,))
+            else:
+                # Удаляем предмет полностью
+                await db.execute("""
+                    DELETE FROM user_inventory WHERE id = ?
+                """, (item_id,))
+            
+            await db.commit()
+            logger.info(f"Removed item {item_name} from user {user_id} inventory")
+            return True
 
 
 async def log_case_opening(user_id: int, case_name: str, item_name: str, item_value: int):
@@ -1139,7 +1186,53 @@ async def get_marketplace_listings(limit: int = 50) -> List[Dict]:
             ]
 
 
-async def buy_marketplace_item(buyer_id: int, listing_id: int) -> bool:
+async def buy_marketplace_item(buyer_id: int, listing_id: int) -> dict:
+    """Покупка предмета с торговой площадки"""
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        # Получаем информацию об объявлении
+        async with db.execute("""
+            SELECT seller_id, item_name, item_rarity, item_value, item_image, price, status
+            FROM marketplace WHERE id = ?
+        """, (listing_id,)) as cursor:
+            result = await cursor.fetchone()
+            if not result or result[6] != 'active':
+                return {"success": False, "error": "Listing not found or not active"}
+            
+            seller_id, item_name, item_rarity, item_value, item_image, price, status = result
+        
+        # Проверяем, что покупатель не продавец
+        if buyer_id == seller_id:
+            return {"success": False, "error": "Cannot buy your own item"}
+        
+        # Проверяем баланс покупателя
+        buyer_balance = await get_user_balance(buyer_id)
+        if buyer_balance < price:
+            return {"success": False, "error": "Insufficient balance"}
+        
+        # Списываем деньги у покупателя
+        await subtract_balance(buyer_id, price)
+        
+        # Добавляем деньги продавцу
+        await add_balance(seller_id, price, give_referrer_bonus=False)
+        
+        # Добавляем предмет покупателю
+        await add_item_to_inventory(buyer_id, item_name, item_rarity, item_value, item_image)
+        
+        # Обновляем статус объявления
+        await db.execute("""
+            UPDATE marketplace SET status = 'sold', buyer_id = ?, sold_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        """, (buyer_id, listing_id))
+        
+        await db.commit()
+        
+        return {
+            "success": True,
+            "seller_id": seller_id,
+            "buyer_id": buyer_id,
+            "item_name": item_name,
+            "price": price
+        }
     """Покупка предмета с торговой площадки"""
     async with aiosqlite.connect(DATABASE_PATH) as db:
         # Получаем информацию об объявлении
@@ -1231,6 +1324,120 @@ async def get_user_marketplace_listings(user_id: int) -> List[Dict]:
                 }
                 for row in rows
             ]
+
+
+# ==================== ФУНКЦИИ ДЛЯ TURBO PASS ====================
+
+async def get_turbo_pass_data(user_id: int) -> Dict:
+    """Получение данных Turbo PASS пользователя"""
+    import json
+    from datetime import datetime, date
+    
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        async with db.execute("""
+            SELECT current_day, streak, last_claim_date, claimed_days
+            FROM turbo_pass WHERE user_id = ?
+        """, (user_id,)) as cursor:
+            result = await cursor.fetchone()
+            
+            if result:
+                current_day, streak, last_claim_date, claimed_days_json = result
+                claimed_days = json.loads(claimed_days_json) if claimed_days_json else []
+                
+                # Проверяем, не пропустил ли пользователь день
+                if last_claim_date:
+                    last_date = datetime.strptime(last_claim_date, '%Y-%m-%d').date()
+                    today = date.today()
+                    days_diff = (today - last_date).days
+                    
+                    # Если пропустил больше 1 дня - сбрасываем прогресс
+                    if days_diff > 1:
+                        current_day = 1
+                        streak = 0
+                        claimed_days = []
+                        
+                        await db.execute("""
+                            UPDATE turbo_pass 
+                            SET current_day = 1, streak = 0, claimed_days = '[]'
+                            WHERE user_id = ?
+                        """, (user_id,))
+                        await db.commit()
+                
+                return {
+                    "current_day": current_day,
+                    "streak": streak,
+                    "last_claim_date": last_claim_date,
+                    "claimed_days": claimed_days
+                }
+            else:
+                # Создаем новую запись
+                await db.execute("""
+                    INSERT INTO turbo_pass (user_id, current_day, streak, claimed_days)
+                    VALUES (?, 1, 0, '[]')
+                """, (user_id,))
+                await db.commit()
+                
+                return {
+                    "current_day": 1,
+                    "streak": 0,
+                    "last_claim_date": None,
+                    "claimed_days": []
+                }
+
+
+async def claim_turbo_pass_reward(user_id: int, reward_type: str, reward_value: int) -> bool:
+    """Получение награды Turbo PASS"""
+    import json
+    from datetime import date
+    
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        # Получаем текущие данные
+        async with db.execute("""
+            SELECT current_day, streak, last_claim_date, claimed_days
+            FROM turbo_pass WHERE user_id = ?
+        """, (user_id,)) as cursor:
+            result = await cursor.fetchone()
+            
+            if not result:
+                return False
+            
+            current_day, streak, last_claim_date, claimed_days_json = result
+            claimed_days = json.loads(claimed_days_json) if claimed_days_json else []
+            
+            # Проверяем, не забрал ли уже сегодня
+            today = date.today().isoformat()
+            if last_claim_date == today:
+                return False
+            
+            # Проверяем, не забрал ли уже этот день
+            if current_day in claimed_days:
+                return False
+            
+            # Добавляем награду
+            if reward_type == 'coins':
+                await add_balance(user_id, reward_value, give_referrer_bonus=True)
+            elif reward_type == 'energy':
+                # Энергия обрабатывается на клиенте
+                pass
+            
+            # Обновляем данные
+            claimed_days.append(current_day)
+            new_day = current_day + 1 if current_day < 30 else 1
+            new_streak = streak + 1
+            
+            # Если дошли до 30 дня и забрали - сбрасываем
+            if current_day == 30:
+                new_day = 1
+                claimed_days = []
+            
+            await db.execute("""
+                UPDATE turbo_pass 
+                SET current_day = ?, streak = ?, last_claim_date = ?, claimed_days = ?
+                WHERE user_id = ?
+            """, (new_day, new_streak, today, json.dumps(claimed_days), user_id))
+            
+            await db.commit()
+            return True
 
 
 async def get_user_rank(user_id: int) -> int:

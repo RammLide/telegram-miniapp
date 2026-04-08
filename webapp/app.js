@@ -126,6 +126,8 @@ let marketListings = [];
 let myListings = [];
 let isLoading = false;
 let currentSellItem = null;
+let turboPassData = null;
+let currentQuickSellItem = null;
 
 // Улучшения
 const upgradesData = [
@@ -488,10 +490,21 @@ function setupEventListeners() {
     document.getElementById('achievementsModalClose').addEventListener('click', closeAchievementsModal);
     document.getElementById('achievementsModalOverlay').addEventListener('click', closeAchievementsModal);
     
+    // Модальное окно Turbo PASS
+    document.getElementById('turboPassBtn').addEventListener('click', openTurboPassModal);
+    document.getElementById('turboPassModalClose').addEventListener('click', closeTurboPassModal);
+    document.getElementById('turboPassModalOverlay').addEventListener('click', closeTurboPassModal);
+    
     // Модальное окно продажи
     document.getElementById('sellModalClose').addEventListener('click', closeSellModal);
     document.getElementById('sellModalOverlay').addEventListener('click', closeSellModal);
     document.getElementById('confirmSellBtn').addEventListener('click', confirmSell);
+    
+    // Модальное окно быстрой продажи
+    document.getElementById('quickSellModalClose').addEventListener('click', closeQuickSellModal);
+    document.getElementById('quickSellModalOverlay').addEventListener('click', closeQuickSellModal);
+    document.getElementById('btnQuickSellHalf').addEventListener('click', quickSellForHalf);
+    document.getElementById('btnQuickSellMarket').addEventListener('click', openMarketSellFromQuick);
     
     // Приглашение друзей
     document.getElementById('inviteBtn').addEventListener('click', inviteFriend);
@@ -1627,13 +1640,24 @@ function displayInventory() {
     
     inventory.forEach(item => {
         const card = document.createElement('div');
-        card.className = `inventory-item ${item.rarity}`;
+        card.className = `inventory-item ${item.rarity} clickable`;
         card.innerHTML = `
             <div class="item-image">${item.image}</div>
             <div class="item-name">${item.name}</div>
             <div class="item-value">💎 ${item.value}</div>
             <div class="item-count">x${item.count}</div>
+            <button class="btn-quick-sell" data-item='${JSON.stringify(item)}'>
+                💰 Продать за ${Math.floor(item.value / 2)}
+            </button>
         `;
+        
+        // Кнопка быстрой продажи
+        const quickSellBtn = card.querySelector('.btn-quick-sell');
+        quickSellBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            quickSellItem(item);
+        });
+        
         inventoryGrid.appendChild(card);
     });
 }
@@ -1896,6 +1920,174 @@ async function cancelListing(listingId) {
     } catch (error) {
         console.error('Error cancelling listing:', error);
         showNotification('❌ Ошибка отмены');
+    }
+}
+
+// ==================== TURBO PASS ====================
+
+const TURBO_PASS_REWARDS = [
+    { day: 1, reward: '💰', value: 100, type: 'coins' },
+    { day: 2, reward: '💎', value: 200, type: 'coins' },
+    { day: 3, reward: '⚡', value: 50, type: 'energy' },
+    { day: 4, reward: '💰', value: 300, type: 'coins' },
+    { day: 5, reward: '🎁', value: 500, type: 'coins' },
+    { day: 6, reward: '💎', value: 400, type: 'coins' },
+    { day: 7, reward: '🏆', value: 1000, type: 'coins' },
+    { day: 8, reward: '💰', value: 600, type: 'coins' },
+    { day: 9, reward: '⚡', value: 100, type: 'energy' },
+    { day: 10, reward: '💎', value: 800, type: 'coins' },
+    { day: 11, reward: '💰', value: 700, type: 'coins' },
+    { day: 12, reward: '🎁', value: 900, type: 'coins' },
+    { day: 13, reward: '💎', value: 1000, type: 'coins' },
+    { day: 14, reward: '🏆', value: 2000, type: 'coins' },
+    { day: 15, reward: '💰', value: 1200, type: 'coins' },
+    { day: 16, reward: '⚡', value: 150, type: 'energy' },
+    { day: 17, reward: '💎', value: 1500, type: 'coins' },
+    { day: 18, reward: '💰', value: 1300, type: 'coins' },
+    { day: 19, reward: '🎁', value: 1600, type: 'coins' },
+    { day: 20, reward: '💎', value: 1800, type: 'coins' },
+    { day: 21, reward: '🏆', value: 3000, type: 'coins' },
+    { day: 22, reward: '💰', value: 2000, type: 'coins' },
+    { day: 23, reward: '⚡', value: 200, type: 'energy' },
+    { day: 24, reward: '💎', value: 2500, type: 'coins' },
+    { day: 25, reward: '💰', value: 2800, type: 'coins' },
+    { day: 26, reward: '🎁', value: 3000, type: 'coins' },
+    { day: 27, reward: '💎', value: 3500, type: 'coins' },
+    { day: 28, reward: '💰', value: 4000, type: 'coins' },
+    { day: 29, reward: '🏆', value: 5000, type: 'coins' },
+    { day: 30, reward: '👑', value: 10000, type: 'coins' }
+];
+
+async function loadTurboPass() {
+    try {
+        const response = await fetch(`${API_URL}/api/turbo_pass`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userData.userId })
+        });
+        
+        if (response.ok) {
+            turboPassData = await response.json();
+            displayTurboPass();
+        }
+    } catch (error) {
+        console.error('Error loading turbo pass:', error);
+    }
+}
+
+function displayTurboPass() {
+    if (!turboPassData) return;
+    
+    const grid = document.getElementById('turboPassGrid');
+    if (!grid) return;
+    
+    grid.innerHTML = '';
+    
+    document.getElementById('currentPassDay').textContent = turboPassData.current_day;
+    document.getElementById('passStreakCount').textContent = turboPassData.streak;
+    
+    TURBO_PASS_REWARDS.forEach((reward, index) => {
+        const dayNum = index + 1;
+        const isCompleted = turboPassData.claimed_days.includes(dayNum);
+        const isCurrent = dayNum === turboPassData.current_day;
+        const isLocked = dayNum > turboPassData.current_day;
+        
+        const card = document.createElement('div');
+        card.className = `pass-day-card ${isCompleted ? 'completed' : ''} ${isCurrent ? 'current' : ''} ${isLocked ? 'locked' : ''}`;
+        
+        let valueText = reward.type === 'coins' ? `${reward.value} 💰` : `+${reward.value} ⚡`;
+        
+        card.innerHTML = `
+            <div class="pass-day-number">День ${dayNum}</div>
+            <div class="pass-day-reward">${reward.reward}</div>
+            <div class="pass-day-value">${valueText}</div>
+            ${isCompleted ? '<div class="pass-checkmark">✅</div>' : ''}
+            ${isCurrent && !isCompleted ? '<button class="pass-claim-btn" onclick="claimTurboPassReward()">Забрать</button>' : ''}
+        `;
+        
+        grid.appendChild(card);
+    });
+}
+
+async function claimTurboPassReward() {
+    try {
+        const response = await fetch(`${API_URL}/api/turbo_pass/claim`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userData.userId })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            
+            userData.balance = data.balance;
+            if (data.energy) {
+                userData.energy = Math.min(userData.maxEnergy, userData.energy + data.reward_value);
+            }
+            
+            updateUI();
+            
+            const reward = TURBO_PASS_REWARDS[turboPassData.current_day - 1];
+            showNotification(`✅ Получено: ${reward.value} ${reward.type === 'coins' ? '💰' : '⚡'}`);
+            tg.HapticFeedback.notificationOccurred('success');
+            
+            await loadTurboPass();
+            saveGameData();
+        } else {
+            const error = await response.json();
+            showNotification('❌ ' + (error.error || 'Ошибка'));
+        }
+    } catch (error) {
+        console.error('Error claiming turbo pass reward:', error);
+        showNotification('❌ Ошибка получения награды');
+    }
+}
+
+function openTurboPassModal() {
+    loadTurboPass();
+    document.getElementById('turboPassModal').classList.add('active');
+}
+
+function closeTurboPassModal() {
+    document.getElementById('turboPassModal').classList.remove('active');
+}
+
+// Быстрая продажа предмета за полцены
+async function quickSellItem(item) {
+    const sellPrice = Math.floor(item.value / 2);
+    
+    // Подтверждение
+    if (!confirm(`Продать "${item.name}" за ${sellPrice} монет?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_URL}/api/quick_sell_item`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                user_id: userData.userId,
+                item_name: item.name,
+                item_rarity: item.rarity,
+                item_value: item.value,
+                item_image: item.image
+            })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            userData.balance = data.balance;
+            updateUI();
+            showNotification(`✅ Продано за ${data.amount} монет!`);
+            tg.HapticFeedback.notificationOccurred('success');
+            loadInventory();
+        } else {
+            const error = await response.json();
+            showNotification('❌ ' + (error.error || 'Ошибка продажи'));
+        }
+    } catch (error) {
+        console.error('Error quick selling item:', error);
+        showNotification('❌ Ошибка продажи');
     }
 }
 

@@ -255,6 +255,9 @@ def setup_routes(app):
     app.router.add_post('/api/marketplace/cancel', cancel_marketplace_listing_endpoint)
     app.router.add_post('/api/marketplace/my_listings', get_user_marketplace_listings_endpoint)
     app.router.add_post('/api/case_reward_choice', case_reward_choice_endpoint)
+    app.router.add_post('/api/quick_sell_item', quick_sell_item_endpoint)
+    app.router.add_post('/api/turbo_pass', get_turbo_pass_endpoint)
+    app.router.add_post('/api/turbo_pass/claim', claim_turbo_pass_endpoint)
     
     # Статические файлы для Mini App
     app.router.add_static('/webapp/', path='webapp/', name='webapp')
@@ -497,13 +500,32 @@ async def buy_marketplace_item_endpoint(request):
         if not user_id or not listing_id:
             return web.json_response({'error': 'user_id and listing_id required'}, status=400)
         
-        success = await buy_marketplace_item(user_id, listing_id)
+        result = await buy_marketplace_item(user_id, listing_id)
         
-        if success:
+        if result["success"]:
+            # Отправляем уведомление продавцу
+            try:
+                from main import bot
+                seller_id = result["seller_id"]
+                item_name = result["item_name"]
+                price = result["price"]
+                
+                await bot.send_message(
+                    seller_id,
+                    f"🎉 <b>Ваш предмет продан!</b>\n\n"
+                    f"📦 Предмет: {item_name}\n"
+                    f"💰 Получено: {price} монет\n\n"
+                    f"Деньги зачислены на ваш баланс!",
+                    parse_mode="HTML"
+                )
+                logger.info(f"✅ Notification sent to seller {seller_id}")
+            except Exception as e:
+                logger.error(f"Failed to send notification to seller: {e}")
+            
             new_balance = await get_user_balance(user_id)
             return web.json_response({'success': True, 'balance': new_balance})
         else:
-            return web.json_response({'error': 'Purchase failed'}, status=400)
+            return web.json_response({'error': result.get("error", "Purchase failed")}, status=400)
     
     except Exception as e:
         logger.error(f"Error in buy_marketplace_item: {e}")
@@ -600,4 +622,134 @@ async def case_reward_choice_endpoint(request):
     
     except Exception as e:
         logger.error(f"Error in case_reward_choice: {e}")
+        return web.json_response({'error': str(e)}, status=500)
+
+
+async def quick_sell_item_endpoint(request):
+    """Быстрая продажа предмета из инвентаря за полцены"""
+    try:
+        data = await request.json()
+        user_id = data.get('user_id')
+        item_name = data.get('item_name')
+        item_rarity = data.get('item_rarity')
+        item_value = data.get('item_value')
+        item_image = data.get('item_image')
+        
+        if not all([user_id, item_name, item_rarity, item_value, item_image]):
+            return web.json_response({'error': 'Missing required fields'}, status=400)
+        
+        # Проверяем наличие предмета в инвентаре
+        from database import remove_item_from_inventory
+        success = await remove_item_from_inventory(user_id, item_name, item_rarity, item_value, item_image)
+        
+        if not success:
+            return web.json_response({'error': 'Item not found in inventory'}, status=400)
+        
+        # Продаем за половину стоимости
+        sell_price = item_value // 2
+        
+        # Начисляем деньги (с процентом реферу)
+        await add_balance(user_id, sell_price, give_referrer_bonus=True)
+        logger.info(f"💰 User {user_id} quick sold item {item_name} for {sell_price}")
+        
+        new_balance = await get_user_balance(user_id)
+        return web.json_response({
+            'success': True,
+            'balance': new_balance,
+            'amount': sell_price
+        })
+    
+    except Exception as e:
+        logger.error(f"Error in quick_sell_item: {e}")
+        return web.json_response({'error': str(e)}, status=500)
+
+
+async def get_turbo_pass_endpoint(request):
+    """Получение данных Turbo PASS"""
+    try:
+        data = await request.json()
+        user_id = data.get('user_id')
+        
+        if not user_id:
+            return web.json_response({'error': 'user_id required'}, status=400)
+        
+        from database import get_turbo_pass_data
+        pass_data = await get_turbo_pass_data(user_id)
+        
+        return web.json_response(pass_data)
+    
+    except Exception as e:
+        logger.error(f"Error in get_turbo_pass: {e}")
+        return web.json_response({'error': str(e)}, status=500)
+
+
+async def claim_turbo_pass_endpoint(request):
+    """Получение награды Turbo PASS"""
+    try:
+        data = await request.json()
+        user_id = data.get('user_id')
+        
+        if not user_id:
+            return web.json_response({'error': 'user_id required'}, status=400)
+        
+        from database import get_turbo_pass_data, claim_turbo_pass_reward
+        
+        # Получаем текущие данные
+        pass_data = await get_turbo_pass_data(user_id)
+        current_day = pass_data['current_day']
+        
+        # Определяем награду для текущего дня
+        REWARDS = [
+            { 'day': 1, 'value': 100, 'type': 'coins' },
+            { 'day': 2, 'value': 200, 'type': 'coins' },
+            { 'day': 3, 'value': 50, 'type': 'energy' },
+            { 'day': 4, 'value': 300, 'type': 'coins' },
+            { 'day': 5, 'value': 500, 'type': 'coins' },
+            { 'day': 6, 'value': 400, 'type': 'coins' },
+            { 'day': 7, 'value': 1000, 'type': 'coins' },
+            { 'day': 8, 'value': 600, 'type': 'coins' },
+            { 'day': 9, 'value': 100, 'type': 'energy' },
+            { 'day': 10, 'value': 800, 'type': 'coins' },
+            { 'day': 11, 'value': 700, 'type': 'coins' },
+            { 'day': 12, 'value': 900, 'type': 'coins' },
+            { 'day': 13, 'value': 1000, 'type': 'coins' },
+            { 'day': 14, 'value': 2000, 'type': 'coins' },
+            { 'day': 15, 'value': 1200, 'type': 'coins' },
+            { 'day': 16, 'value': 150, 'type': 'energy' },
+            { 'day': 17, 'value': 1500, 'type': 'coins' },
+            { 'day': 18, 'value': 1300, 'type': 'coins' },
+            { 'day': 19, 'value': 1600, 'type': 'coins' },
+            { 'day': 20, 'value': 1800, 'type': 'coins' },
+            { 'day': 21, 'value': 3000, 'type': 'coins' },
+            { 'day': 22, 'value': 2000, 'type': 'coins' },
+            { 'day': 23, 'value': 200, 'type': 'energy' },
+            { 'day': 24, 'value': 2500, 'type': 'coins' },
+            { 'day': 25, 'value': 2800, 'type': 'coins' },
+            { 'day': 26, 'value': 3000, 'type': 'coins' },
+            { 'day': 27, 'value': 3500, 'type': 'coins' },
+            { 'day': 28, 'value': 4000, 'type': 'coins' },
+            { 'day': 29, 'value': 5000, 'type': 'coins' },
+            { 'day': 30, 'value': 10000, 'type': 'coins' }
+        ]
+        
+        reward = REWARDS[current_day - 1]
+        
+        # Получаем награду
+        success = await claim_turbo_pass_reward(user_id, reward['type'], reward['value'])
+        
+        if not success:
+            return web.json_response({'error': 'Already claimed today or invalid day'}, status=400)
+        
+        new_balance = await get_user_balance(user_id)
+        
+        return web.json_response({
+            'success': True,
+            'balance': new_balance,
+            'reward_type': reward['type'],
+            'reward_value': reward['value'],
+            'energy': reward['type'] == 'energy'
+        })
+    
+    except Exception as e:
+        logger.error(f"Error in claim_turbo_pass: {e}")
         return web.json_response({'error': str(e)}, status=500)
