@@ -258,6 +258,7 @@ def setup_routes(app):
     app.router.add_post('/api/quick_sell_item', quick_sell_item_endpoint)
     app.router.add_post('/api/turbo_pass', get_turbo_pass_endpoint)
     app.router.add_post('/api/turbo_pass/claim', claim_turbo_pass_endpoint)
+    app.router.add_post('/api/check_updates', check_updates_endpoint)
     
     # Статические файлы для Mini App
     app.router.add_static('/webapp/', path='webapp/', name='webapp')
@@ -752,4 +753,39 @@ async def claim_turbo_pass_endpoint(request):
     
     except Exception as e:
         logger.error(f"Error in claim_turbo_pass: {e}")
+        return web.json_response({'error': str(e)}, status=500)
+
+
+async def check_updates_endpoint(request):
+    """Проверка обновлений для пользователя (баланс, бан и т.д.)"""
+    try:
+        data = await request.json()
+        user_id = data.get('user_id')
+        
+        if not user_id:
+            return web.json_response({'error': 'user_id required'}, status=400)
+        
+        from database import is_user_banned
+        
+        # Проверяем бан
+        is_banned, ban_reason = await is_user_banned(user_id)
+        
+        # Получаем актуальный баланс
+        balance = await get_user_balance(user_id)
+        
+        # Получаем игровые данные
+        game_data = await get_user_game_data(user_id)
+        
+        return web.json_response({
+            'is_banned': is_banned,
+            'ban_reason': ban_reason,
+            'balance': balance,
+            'game_data': {
+                'energy': game_data.get('energy'),
+                'max_energy': game_data.get('max_energy')
+            }
+        })
+    
+    except Exception as e:
+        logger.error(f"Error in check_updates: {e}")
         return web.json_response({'error': str(e)}, status=500)

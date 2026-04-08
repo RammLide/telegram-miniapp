@@ -386,6 +386,11 @@ async function initApp() {
         }
     }, 5000);
     
+    // Проверка обновлений каждые 3 секунды (баланс, бан статус и т.д.)
+    setInterval(() => {
+        checkForUpdates();
+    }, 3000);
+    
     // Сохранение при закрытии/перезагрузке страницы
     window.addEventListener('beforeunload', (e) => {
         // Синхронное сохранение в localStorage
@@ -690,6 +695,7 @@ function switchMarketTab(tabName) {
     if (tabName === 'buy') {
         loadMarketplace();
     } else if (tabName === 'sell') {
+        loadInventory(); // Загружаем инвентарь для отображения
         loadSellInventory();
     } else if (tabName === 'my') {
         loadMyListings();
@@ -2088,6 +2094,72 @@ async function quickSellItem(item) {
     } catch (error) {
         console.error('Error quick selling item:', error);
         showNotification('❌ Ошибка продажи');
+    }
+}
+
+// Проверка обновлений в реальном времени
+async function checkForUpdates() {
+    if (isLoading) return;
+    
+    try {
+        const response = await fetch(`${API_URL}/api/check_updates`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userData.userId })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            
+            // Проверяем бан
+            if (data.is_banned) {
+                document.body.innerHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; padding: 20px; text-align: center; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);">
+                        <div style="background: rgba(255,255,255,0.05); padding: 30px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); max-width: 400px; border: 2px solid #ff6b6b;">
+                            <div style="font-size: 60px; margin-bottom: 20px;">🚫</div>
+                            <h2 style="color: #ff6b6b; margin-bottom: 15px;">Аккаунт заблокирован</h2>
+                            <p style="color: #fff; margin-bottom: 15px; line-height: 1.6;">
+                                <strong>Причина:</strong><br>${data.ban_reason}
+                            </p>
+                            <p style="color: #a0a0a0; margin-bottom: 25px; line-height: 1.6; font-size: 14px;">
+                                Если вы не согласны с блокировкой, обратитесь в <a href="https://t.me/turbo_token_support" style="color: #667eea; text-decoration: none;">поддержку</a>.
+                            </p>
+                            <button onclick="window.Telegram.WebApp.close()" style="background: #667eea; color: white; border: none; padding: 15px 30px; border-radius: 10px; font-size: 16px; cursor: pointer; font-weight: bold;">
+                                Закрыть
+                            </button>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Обновляем баланс если изменился
+            if (data.balance !== undefined && data.balance !== userData.balance) {
+                const diff = data.balance - userData.balance;
+                userData.balance = data.balance;
+                updateUI();
+                
+                if (diff > 0) {
+                    showNotification(`💰 +${diff} монет`);
+                } else if (diff < 0) {
+                    showNotification(`💰 ${diff} монет`);
+                }
+            }
+            
+            // Обновляем другие данные если изменились
+            if (data.game_data) {
+                if (data.game_data.energy !== undefined) {
+                    userData.energy = data.game_data.energy;
+                }
+                if (data.game_data.max_energy !== undefined) {
+                    userData.maxEnergy = data.game_data.max_energy;
+                }
+                updateUI();
+            }
+        }
+    } catch (error) {
+        // Игнорируем ошибки при проверке обновлений
+        console.log('Update check failed:', error);
     }
 }
 
