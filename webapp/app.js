@@ -1995,11 +1995,16 @@ function displayTurboPass() {
     TURBO_PASS_REWARDS.forEach((reward, index) => {
         const dayNum = index + 1;
         const isCompleted = turboPassData.claimed_days.includes(dayNum);
-        const isCurrent = dayNum === turboPassData.current_day;
-        const isLocked = dayNum > turboPassData.current_day;
+        const isCurrent = dayNum === turboPassData.current_day && !isCompleted;
+        const isLocked = dayNum > turboPassData.current_day || (dayNum === turboPassData.current_day && isCompleted);
         
         const card = document.createElement('div');
-        card.className = `pass-day-card ${isCompleted ? 'completed' : ''} ${isCurrent ? 'current' : ''} ${isLocked ? 'locked' : ''}`;
+        let cardClasses = 'pass-day-card';
+        if (isCompleted) cardClasses += ' completed';
+        if (isCurrent) cardClasses += ' current';
+        if (isLocked && !isCompleted) cardClasses += ' locked';
+        
+        card.className = cardClasses;
         
         let valueText = reward.type === 'coins' ? `${reward.value} 💰` : `+${reward.value} ⚡`;
         
@@ -2008,7 +2013,7 @@ function displayTurboPass() {
             <div class="pass-day-reward">${reward.reward}</div>
             <div class="pass-day-value">${valueText}</div>
             ${isCompleted ? '<div class="pass-checkmark">✅</div>' : ''}
-            ${isCurrent && !isCompleted ? '<button class="pass-claim-btn" onclick="claimTurboPassReward()">Забрать</button>' : ''}
+            ${isCurrent ? '<button class="pass-claim-btn" onclick="claimTurboPassReward()">Забрать</button>' : ''}
         `;
         
         grid.appendChild(card);

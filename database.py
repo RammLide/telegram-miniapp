@@ -1331,7 +1331,7 @@ async def get_user_marketplace_listings(user_id: int) -> List[Dict]:
 async def get_turbo_pass_data(user_id: int) -> Dict:
     """Получение данных Turbo PASS пользователя"""
     import json
-    from datetime import datetime, date
+    from datetime import datetime, date, timedelta
     
     async with aiosqlite.connect(DATABASE_PATH) as db:
         async with db.execute("""
@@ -1344,14 +1344,33 @@ async def get_turbo_pass_data(user_id: int) -> Dict:
                 current_day, streak, last_claim_date, claimed_days_json = result
                 claimed_days = json.loads(claimed_days_json) if claimed_days_json else []
                 
+                today = date.today()
+                
                 # Проверяем, не пропустил ли пользователь день
                 if last_claim_date:
                     last_date = datetime.strptime(last_claim_date, '%Y-%m-%d').date()
-                    today = date.today()
                     days_diff = (today - last_date).days
                     
+                    # Если прошел новый день и пользователь забрал вчера
+                    if days_diff == 1 and current_day in claimed_days:
+                        # Переходим на следующий день
+                        new_day = current_day + 1 if current_day < 30 else 1
+                        
+                        # Если дошли до 30 и начинаем заново
+                        if current_day == 30:
+                            claimed_days = []
+                        
+                        await db.execute("""
+                            UPDATE turbo_pass 
+                            SET current_day = ?, claimed_days = ?
+                            WHERE user_id = ?
+                        """, (new_day, json.dumps(claimed_days), user_id))
+                        await db.commit()
+                        
+                        current_day = new_day
+                    
                     # Если пропустил больше 1 дня - сбрасываем прогресс
-                    if days_diff > 1:
+                    elif days_diff > 1:
                         current_day = 1
                         streak = 0
                         claimed_days = []
@@ -1422,19 +1441,16 @@ async def claim_turbo_pass_reward(user_id: int, reward_type: str, reward_value: 
             
             # Обновляем данные
             claimed_days.append(current_day)
-            new_day = current_day + 1 if current_day < 30 else 1
             new_streak = streak + 1
             
-            # Если дошли до 30 дня и забрали - сбрасываем
-            if current_day == 30:
-                new_day = 1
-                claimed_days = []
+            # НЕ увеличиваем current_day сразу - он увеличится на следующий день
+            # Если дошли до 30 дня и забрали - сбрасываем на следующий день
             
             await db.execute("""
                 UPDATE turbo_pass 
-                SET current_day = ?, streak = ?, last_claim_date = ?, claimed_days = ?
+                SET streak = ?, last_claim_date = ?, claimed_days = ?
                 WHERE user_id = ?
-            """, (new_day, new_streak, today, json.dumps(claimed_days), user_id))
+            """, (new_streak, today, json.dumps(claimed_days), user_id))
             
             await db.commit()
             return True
