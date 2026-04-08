@@ -686,12 +686,27 @@ function switchTab(tabName) {
 }
 
 function switchMarketTab(tabName) {
+    console.log('Switching to market tab:', tabName);
+    
+    // Убираем активный класс со всех кнопок
     document.querySelectorAll('.market-tab-btn').forEach(btn => btn.classList.remove('active'));
+    
+    // Убираем активный класс со всех контентов
     document.querySelectorAll('.market-tab-content').forEach(content => content.classList.remove('active'));
     
-    document.querySelector(`[data-market-tab="${tabName}"]`).classList.add('active');
-    document.getElementById(`market-${tabName}-tab`).classList.add('active');
+    // Добавляем активный класс к выбранной кнопке
+    const selectedBtn = document.querySelector(`[data-market-tab="${tabName}"]`);
+    if (selectedBtn) {
+        selectedBtn.classList.add('active');
+    }
     
+    // Добавляем активный класс к выбранному контенту
+    const selectedContent = document.getElementById(`market-${tabName}-tab`);
+    if (selectedContent) {
+        selectedContent.classList.add('active');
+    }
+    
+    // Загружаем данные для выбранной вкладки
     if (tabName === 'buy') {
         loadMarketplace();
     } else if (tabName === 'sell') {
@@ -763,19 +778,23 @@ function showTapAnimation(e, amount) {
 
 // Регенерация энергии
 function startEnergyRegen() {
+    // Восстанавливаем энергию каждую секунду
     setInterval(() => {
         if (userData.energy < userData.maxEnergy) {
             userData.energy = Math.min(userData.maxEnergy, userData.energy + 1);
             updateUI();
+            
+            // Сохраняем в localStorage для быстрого доступа
+            saveToLocalStorage();
         }
     }, 1000); // Восстанавливаем 1 энергию в секунду
     
-    // Автосохранение при изменении энергии каждые 30 секунд
+    // Автосохранение энергии на сервер каждые 10 секунд
     setInterval(() => {
         if (!isLoading) {
             saveGameData();
         }
-    }, 30000);
+    }, 10000);
 }
 
 // Уровни и опыт
@@ -1996,13 +2015,13 @@ function displayTurboPass() {
         const dayNum = index + 1;
         const isCompleted = turboPassData.claimed_days.includes(dayNum);
         const isCurrent = dayNum === turboPassData.current_day && !isCompleted;
-        const isLocked = dayNum > turboPassData.current_day || (dayNum === turboPassData.current_day && isCompleted);
+        const isLocked = dayNum > turboPassData.current_day;
         
         const card = document.createElement('div');
         let cardClasses = 'pass-day-card';
         if (isCompleted) cardClasses += ' completed';
         if (isCurrent) cardClasses += ' current';
-        if (isLocked && !isCompleted) cardClasses += ' locked';
+        if (isLocked) cardClasses += ' locked';
         
         card.className = cardClasses;
         
@@ -2139,7 +2158,7 @@ async function checkForUpdates() {
             }
             
             // Обновляем баланс если изменился
-            if (data.balance !== undefined && data.balance !== userData.balance) {
+            if (data.balance !== undefined && data.balance !== null && data.balance !== userData.balance) {
                 const diff = data.balance - userData.balance;
                 userData.balance = data.balance;
                 updateUI();
@@ -2151,15 +2170,24 @@ async function checkForUpdates() {
                 }
             }
             
-            // Обновляем другие данные если изменились
+            // Обновляем энергию и другие данные если изменились
             if (data.game_data) {
-                if (data.game_data.energy !== undefined) {
+                let energyChanged = false;
+                
+                if (data.game_data.energy !== undefined && data.game_data.energy !== null) {
+                    if (data.game_data.energy !== userData.energy) {
+                        energyChanged = true;
+                    }
                     userData.energy = data.game_data.energy;
                 }
-                if (data.game_data.max_energy !== undefined) {
+                
+                if (data.game_data.max_energy !== undefined && data.game_data.max_energy !== null) {
                     userData.maxEnergy = data.game_data.max_energy;
                 }
-                updateUI();
+                
+                if (energyChanged) {
+                    updateUI();
+                }
             }
         }
     } catch (error) {

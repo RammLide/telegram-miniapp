@@ -1736,6 +1736,7 @@ main {
     align-items: center;
     justify-content: space-between;
     min-height: 130px;
+    z-index: 1;
 }
 
 .pass-day-card.completed {
@@ -1748,6 +1749,7 @@ main {
     border-color: var(--gold);
     background: rgba(255, 215, 0, 0.1);
     box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+    z-index: 2;
 }
 
 .pass-day-card.current:not(.completed) {
